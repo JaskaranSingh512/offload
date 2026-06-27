@@ -73,11 +73,25 @@ service_role). Partner confirmed GitHub OAuth is set up in the Supabase dashboar
 - **Phase 0 DONE** (contract, amended for auth). **Phase 1 DONE** (`npm install`; sdk + key + MCP gate
   green — commit `629e385`). **Phase 2 DONE** (`./verify.sh` exits 0 — typecheck+lint+3 tests; `next build`
   prerenders all 7 routes).
-- **Phase 3 (Schema + types + seed) is next and now UNBLOCKED.** `0001_init` will: drop the 4 partner
-  tables → create the 13 CONTRACT tables → `handle_new_user` trigger (accounts.id = auth.uid) → RLS ON
-  with `account_id = auth.uid()` policies → seed (demo account + ≥20 posts, every table ≥1 row) →
-  regenerate `src/types/database.types.ts`. **Open Phase-3 design point:** the seed demo account needs a
-  demo `auth.users` row so its rows are reachable under RLS — confirm approach before applying.
+- **Phase 3 (Schema + seed) APPLIED + verified (types PENDING).** `0001_init` applied as migration
+  `20260627221415`: dropped the 4 partner tables, created the 13 CONTRACT tables, `handle_new_user`
+  trigger, RLS ON with showcase policies (own rows rw + `DEMO_ACCOUNT_ID …00000b1e51ab` read-only), and
+  the `brand-assets` bucket. `seed.sql` loaded the Brew Lab showcase: **22 posts**, every table ≥1 row
+  (post_metrics 42, founder_scripts 5, etc.). `accounts`=2 → the trigger already fired for a real GitHub
+  sign-in (partner tested login). Files: `supabase/migrations/0001_init.sql`, `supabase/seed.sql`.
+
+## ⚠️ NEW — partner concurrent schema change mid-session (2026-06-27, NEEDS DECISION)
+While Phase 3 was running, the partner modified the **shared** DB out-of-band (not via a tracked
+migration — ledger shows only our `0001_init`):
+- Added **`canva`** to the `provider_t` enum (now reddit,x,instagram,tiktok,**canva**). Enum-add is
+  effectively irreversible in PG.
+- (Re)created an **`oauth_states`** table — now `account_id`-keyed (state uuid, account_id, provider,
+  code_verifier, created_at): a **Canva OAuth PKCE** table, adopting our `account_id` model.
+This is the partner **building Canva**, which is a **DEFERRED decision** per CLAUDE.md / EXECUTION_PLAN
+§0.5 ("stop and ask before building Canva"). **I did NOT revert their changes** (would repeat the
+original conflict). **TS types NOT yet regenerated/committed** — a fresh snapshot now embeds `oauth_states`
++ `canva` into our typed layer, so it's held until we decide whether Canva is in scope. Need to sync with
+the partner.
 
 ## Gotchas
 - 4 channels only (Reddit, TikTok, Instagram, X). Video is founder-posted, never auto-published.

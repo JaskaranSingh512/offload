@@ -30,17 +30,24 @@
 - **Provisioning:** a `handle_new_user` trigger on `auth.users` INSERT creates the matching
   `public.accounts` row (`id := new.id`). Onboarding then `upsert`s the `brands` row for that account
   (on conflict `account_id`).
-- **RLS is ON.** Every account-scoped table carries a policy `account_id = auth.uid()` (USING + WITH
-  CHECK). `cross_account_aggregates` is **global**: RLS on with a read-only `select` policy for any
-  authenticated user (no per-account scoping — it holds cross-account benchmark rows).
+- **RLS is ON.** Every account-scoped table carries:
+  - a **write** policy (INSERT/UPDATE/DELETE) `account_id = auth.uid()` — you only mutate your own rows;
+  - a **read** policy (SELECT) `account_id = auth.uid() OR account_id = <DEMO_ACCOUNT_ID>` — you read your
+    own rows **plus** the public **showcase** account (read-only; nobody can write the showcase).
+  `cross_account_aggregates` is **global**: RLS on with a read-only `select` policy for any authenticated
+  user (no per-account scoping — it holds cross-account benchmark rows).
+- **Showcase account (seed/demo, chosen 2026-06-27):** the Brew Lab seed data lives under a single fixed
+  **`DEMO_ACCOUNT_ID = 00000000-0000-0000-0000-00000b1e51ab`** (the old literal returns, now as the
+  showcase id — **not** a per-user tenant key). It is a free-standing `accounts` row (no backing
+  `auth.users` row; `accounts.id` is a plain uuid PK, **not** FK to `auth.users`). Every authenticated
+  founder sees the showcase data alongside their own (empty until they onboard) account. Exposed to the
+  client as `NEXT_PUBLIC_DEMO_ACCOUNT_ID` so the UI can render the showcase before the user has data.
 - **Keys:** the browser uses the **anon/publishable** key **with the logged-in user's session** so
   `auth.uid()` resolves under RLS; Route Handlers use the **secret/service** key to bypass RLS for
   server-side writes (e.g. `/api/generate` inserting posts).
-- **Seed/demo data** attaches to a known **demo account** (a seeded `accounts` row whose `id` matches a
-  seeded demo auth user), so seed rows are reachable under RLS when logged in as that demo user. Exact
-  seed-account wiring (the demo user's uid + the trigger interaction) is finalized in Phase 3 (§4 of
-  `EXECUTION_PLAN.md`). `NEXT_PUBLIC_ACCOUNT_ID` is no longer a hardcoded app constant — the account id is
-  derived from the session.
+- **Provisioning recap:** `handle_new_user` trigger inserts `accounts(id := new.id)` on `auth.users`
+  INSERT for real GitHub sign-ins; the showcase account is seeded directly. No hardcoded per-user
+  `account_id` — a real user's account id is their `auth.uid()`.
 
 ### 1b. The 13 tables (plural names)
 
