@@ -1,12 +1,27 @@
 # NOTES — edit/overwrite freely, keep it short.
 
 ## What works
-- Nothing built yet. Repo has PRD.md + EXECUTION_PLAN.md only; app not scaffolded.
+- **Frontend reflects the full PRD/EXECUTION_PLAN "Offload" vision** (branch `feat/frontend-tether`).
+  Rebranded Tether → **Offload** with the real logo (`components/logo.tsx`, from `offload logo.html`).
+  Brew Lab is kept intentionally as the canonical demo persona (PRD §2).
+- **Real App Router routes** (not single-page state routing): `/onboarding`, `/` (Dashboard),
+  `/calendar`, `/build`, `/scripts`, `/analytics`, `/settings`. App shell in `app/(shell)/layout.tsx`
+  hosts the sidebar + persistent overlays. UI overlay state in `lib/store.ts` (Zustand); toasts via `sonner`.
+- **Net-new PRD §5/§6 surfaces/features (frontend, mock):** onboarding OAuth Connect step + brand-asset
+  upload; **Settings** (per-channel approval policy + notification prefs); persistent **chat launcher**
+  (§6.6, previews structured changes); **format-aware** Content Detail drawer (§5.4 — video = Mark filmed,
+  no publish); **in-flight + recap** Analytics modes; platform-constraint flags.
+- `./verify.sh` passes (typecheck + lint + `vitest`) and `next build` static-prerenders all 7 routes.
+- `npm run dev` serves at :3000.
 
 ## Stack (locked)
-- Next.js 16 (App Router) + TypeScript + shadcn/ui + Tailwind v4, deployed on Vercel.
-- Supabase backend. AI endpoints (`/api/generate`, `/api/chat-edit`) = Next.js Route Handlers (no Express).
-- Build directly in TSX from PRD §5/§6 — no JSX prototype.
+- Next.js 16 (App Router) + TypeScript + Tailwind v4, deployed on Vercel. Supabase backend.
+- AI endpoints (`/api/generate`, `/api/chat-edit`) = Next.js Route Handlers (no Express).
+- **Design system note:** the visual design is a bespoke hand-rolled CSS system (ported verbatim
+  to `app/globals.css` from the prototype's `styles.css`), NOT shadcn/ui. Tailwind v4 is wired up
+  for any future components, but screens use the prototype's own classes for pixel fidelity.
+  This supersedes the earlier "build from PRD §5/§6, no JSX prototype" plan — we now have the
+  prototype and the user asked to build directly from it.
 
 ## What's next
 - **Read EXECUTION_PLAN.md** — it's now a runbook for an autonomous coding agent (Claude Code), ordered
