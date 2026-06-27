@@ -26,5 +26,19 @@ create table social_connections (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id),
   provider text,
-  status text default 'disconnected'
+  status text default 'disconnected',
+  access_token text,
+  refresh_token text,
+  token_expires_at timestamptz,
+  unique(user_id, provider)
 );
+
+-- Temp table for PKCE state during Canva OAuth handshake
+create table oauth_states (
+  state uuid primary key,
+  user_id uuid not null,
+  provider text not null,
+  code_verifier text not null,
+  created_at timestamptz default now()
+);
+create index oauth_states_created_at on oauth_states (created_at);
