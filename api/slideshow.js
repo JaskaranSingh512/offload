@@ -63,9 +63,9 @@ async function getCanvaToken(accountId) {
 const canvaH = (token) => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" });
 
 async function copyTemplate(token, title) {
-  const resp = await fetch("https://api.canva.com/rest/v1/designs", {
+  const resp = await fetch(`https://api.canva.com/rest/v1/designs/${TEMPLATE_ID}/copies`, {
     method: "POST", headers: canvaH(token),
-    body: JSON.stringify({ asset_id: TEMPLATE_ID, title: title.slice(0, 50) }),
+    body: JSON.stringify({ title: title.slice(0, 50) }),
   });
   const text = await resp.text();
   if (!resp.ok) throw new Error(`copyTemplate (${resp.status}): ${text}`);
