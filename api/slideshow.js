@@ -14,21 +14,43 @@ const channelGuide = {
   x: "X/Twitter thread-style slides (4-5 slides). Punchy. Each slide = one idea. Last slide is the CTA or hot take.",
 };
 
-// Canva Connect REST API — uses client_credentials OAuth flow
-// Docs: https://www.canva.com/developers/docs/connect/
-async function getCanvaToken() {
+// Fetch and (if needed) refresh the user's Canva access token from Supabase
+async function getCanvaToken(userId) {
+  const { data: conn } = await supabase
+    .from("social_connections")
+    .select("access_token, refresh_token, token_expires_at")
+    .eq("user_id", userId)
+    .eq("provider", "canva")
+    .eq("status", "connected")
+    .single();
+
+  if (!conn) throw new Error("Canva not connected for this user. Visit /api/canva-auth to connect.");
+
+  // If token is still valid (with 60s buffer), use it directly
+  const expiresAt = new Date(conn.token_expires_at).getTime();
+  if (Date.now() < expiresAt - 60_000) return conn.access_token;
+
+  // Refresh the token
   const resp = await fetch("https://api.canva.com/rest/v1/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "client_credentials",
+      grant_type: "refresh_token",
+      refresh_token: conn.refresh_token,
       client_id: process.env.CANVA_CLIENT_ID,
       client_secret: process.env.CANVA_CLIENT_SECRET,
-      scope: "design:content:write asset:read",
     }),
   });
-  if (!resp.ok) throw new Error(`Canva auth failed: ${await resp.text()}`);
-  const { access_token } = await resp.json();
+  if (!resp.ok) throw new Error(`Canva token refresh failed: ${await resp.text()}`);
+
+  const { access_token, refresh_token, expires_in } = await resp.json();
+
+  await supabase.from("social_connections").update({
+    access_token,
+    refresh_token,
+    token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
+  }).eq("user_id", userId).eq("provider", "canva");
+
   return access_token;
 }
 
@@ -82,8 +104,9 @@ async function exportCanvaDesign(token, designId) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { project_id } = req.body;
+  const { project_id, user_id } = req.body;
   if (!project_id) return res.status(400).json({ error: "project_id required" });
+  if (!user_id) return res.status(400).json({ error: "user_id required" });
 
   const { data: project } = await supabase
     .from("projects")
@@ -150,7 +173,7 @@ export default async function handler(req, res) {
 
   if (canvaEnabled) {
     try {
-      const token = await getCanvaToken();
+      const token = await getCanvaToken(user_id);
       for (const slide of slideData.slides) {
         const designId = await createCanvaDesign(token, slide, project.best_channel);
         const exportUrl = await exportCanvaDesign(token, designId);
