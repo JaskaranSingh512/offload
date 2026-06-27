@@ -24,18 +24,23 @@
   prototype and the user asked to build directly from it.
 
 ## What's next
-- **Follow `EXECUTION_PLAN.md`** — the autonomous build runbook, ordered **Phase 0 → 8** with exact
-  non-interactive commands, file paths, and a per-phase Verification gate. CLAUDE.md → "Execution phases"
-  has the phase table + the **done = gate passes** and **commit-per-phase** rules.
+- **Active scope = the 12-Hour MVP integrated into `EXECUTION_PLAN.md` — read §0.5 FIRST.** We build on
+  the Next.js + Supabase phased rails (Phase 0 → 8), with the MVP's "brand doc → AI channel strategy"
+  folded in. CLAUDE.md → "Execution phases" has the phase table + the **done = gate passes** and
+  **commit-per-phase** rules.
+- **MVP decisions locked (2026-06-27):** Next.js (not Vite/Express) · **all 4 channels**, but onboarding
+  uploads a brand doc and the AI recommends/pre-selects the lead channel(s) (fitness → IG/TikTok; B2B →
+  X/Reddit) · `.md`/`.txt` only · **deferred:** Canva render (MCP vs Connect REST) + real GitHub auth —
+  stop and ask before building those.
 - **Current position: nothing built — Phase 0 not started.** Do Phase 0 FIRST: write `CONTRACT.md`
   (plural tables, `account_id`, two-column post status, the 5 content JSONB shapes + founder_scripts
-  shape, 3 term defs) before any SQL or TSX. Its gate (§1) blocks everything.
-- Then in order: Phase 1 services (Supabase + MCP, Anthropic key, Vercel) → 2 scaffold → 3 schema +
-  types + seed → 4 surfaces → 5 AI Route Handlers → 6 OAuth/publish mock → 7 integrate + deploy →
-  8 Playwright e2e + PR. **Commit after each phase once its gate is green.**
+  shape, 3 term defs, **plus the new `brands` doc/recommendation columns from §0.5**) before any SQL or
+  TSX. Its gate (§1) blocks everything.
+- Then in order: Phase 1 services → 2 scaffold → 3 schema + types + seed → 4 surfaces (incl. onboarding
+  doc upload + AI suggestion) → 5 AI Route Handlers (`/api/generate`, `/api/chat-edit`, **`/api/analyze`**)
+  → 6 OAuth/publish mock → 7 integrate + deploy → 8 Playwright e2e + PR. **Commit after each phase once
+  its gate is green.**
 - `package.json` scripts `typecheck` / `lint` (eslint) / `test` turn on `verify.sh`.
-- `MVP_12H.md` is a parked alternate (single-channel + Canva, 12h re-scope) — **not** the plan we're
-  following. Ignore it unless the scope is explicitly switched back.
 
 ## Gotchas
 - 4 channels only (Reddit, TikTok, Instagram, X). Video is founder-posted, never auto-published.
