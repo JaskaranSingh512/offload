@@ -1,4 +1,4 @@
-# CONTRACT.md — Offload data contract (FROZEN, Phase 0)
+# CONTRACT.md — Offload data contract (FROZEN, Phase 0; auth amendment 2026-06-27)
 
 > **This is the authority.** The SQL migration (`0001_init`), the generated TypeScript types
 > (`src/types/database.types.ts`), the typed data layer (`src/lib/api.ts`), the AI Route Handlers
@@ -9,16 +9,38 @@
 > table/column/status model here is the source of truth and does not drift.
 >
 > Frozen 2026-06-27 per `EXECUTION_PLAN.md` §1 + §0.5. Do not write SQL or TSX until this passes its gate.
+>
+> **AMENDED 2026-06-27 — GitHub auth is in.** The demo now ships **Supabase Auth + GitHub OAuth** and
+> **per-user accounts** (`account_id = auth.uid()`, RLS ON). The old "no-auth, single hardcoded
+> `account_id`, RLS off" model is retired. See **§1a** for the new tenant/auth model. Everything else in
+> this contract (the 13 tables, the two-column post-status model, the content shapes, the term defs) is
+> unchanged.
 
 ---
 
 ## 1. Tables, tenant key, status model
 
-### 1a. Tenant key
+### 1a. Tenant key & auth (amended 2026-06-27 — GitHub auth is in)
 
 - **Tenant key is `account_id` everywhere.** One account = one founder = one brand in v1.
-- The Brew Lab demo tenant is the hardcoded literal UUID `00000000-0000-0000-0000-00000b1e51ab`
-  (= `NEXT_PUBLIC_ACCOUNT_ID`).
+- **Login = Supabase Auth, GitHub OAuth provider.** Each authenticated GitHub user maps to exactly one
+  account: **`accounts.id` equals that user's `auth.users.id`**, so **`account_id = auth.uid()`** holds
+  throughout. Accounts are **per-user** (true multi-tenant) — the old hardcoded Brew Lab literal
+  `00000000-0000-0000-0000-00000b1e51ab` is **retired** (it was stale frontend scaffolding, not real data).
+- **Provisioning:** a `handle_new_user` trigger on `auth.users` INSERT creates the matching
+  `public.accounts` row (`id := new.id`). Onboarding then `upsert`s the `brands` row for that account
+  (on conflict `account_id`).
+- **RLS is ON.** Every account-scoped table carries a policy `account_id = auth.uid()` (USING + WITH
+  CHECK). `cross_account_aggregates` is **global**: RLS on with a read-only `select` policy for any
+  authenticated user (no per-account scoping — it holds cross-account benchmark rows).
+- **Keys:** the browser uses the **anon/publishable** key **with the logged-in user's session** so
+  `auth.uid()` resolves under RLS; Route Handlers use the **secret/service** key to bypass RLS for
+  server-side writes (e.g. `/api/generate` inserting posts).
+- **Seed/demo data** attaches to a known **demo account** (a seeded `accounts` row whose `id` matches a
+  seeded demo auth user), so seed rows are reachable under RLS when logged in as that demo user. Exact
+  seed-account wiring (the demo user's uid + the trigger interaction) is finalized in Phase 3 (§4 of
+  `EXECUTION_PLAN.md`). `NEXT_PUBLIC_ACCOUNT_ID` is no longer a hardcoded app constant — the account id is
+  derived from the session.
 
 ### 1b. The 13 tables (plural names)
 

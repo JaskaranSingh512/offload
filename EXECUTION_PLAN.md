@@ -39,8 +39,10 @@ Phases 0→8 and their Verification gates still apply — what follows are the d
 - **Canva slideshow render:** **DECISION DEFERRED.** When we build slide rendering (the §6d IG-carousel /
   slideshow step), **stop and ask: Canva MCP vs Canva Connect REST.** Until then keep the satori→PNG path
   as the placeholder renderer.
-- **GitHub auth:** MVP_12H wants real GitHub login; this plan's demo currently runs **no-auth** (§0).
-  **OPEN — confirm before Phase 4** whether to add Supabase GitHub OAuth or keep the hardcoded `account_id`.
+- **GitHub auth:** **RESOLVED 2026-06-27 — GitHub login IS in the demo.** Use **Supabase Auth + the
+  GitHub OAuth provider** with **per-user accounts**: `accounts.id = auth.uid()`, RLS **ON**, policy
+  `account_id = auth.uid()`. The old no-auth / single-hardcoded-`account_id` / RLS-off model (§0 below)
+  is **retired**. See `CONTRACT.md` §1a and the **Auth deltas for §0/§3/§4** callout below.
 
 **New feature folded in — "brand doc → channel strategy":**
 - **Data (Phase 0 + 3):** extend the `brands` table with `doc_name text`, `doc_text text`, `industry text`,
@@ -58,6 +60,26 @@ Phases 0→8 and their Verification gates still apply — what follows are the d
 
 **Unchanged by the MVP:** the two-column post-status model, 4-channel campaign generation, founder-posted
 video (never auto-published), all mock publishing, the golden-payload fallback, and every Verification gate.
+
+**⚠️ Auth deltas for §0/§3/§4 (RESOLVED 2026-06-27 — GitHub auth is in).** These override the conflicting
+no-auth text in §0 and the RLS/seed details in §3/§4:
+- **Auth:** Supabase Auth + GitHub OAuth provider. A logged-out visitor hits a GitHub sign-in; on first
+  sign-in a `handle_new_user` trigger on `auth.users` creates the matching `public.accounts` row
+  (`id := new.id`). **`account_id = auth.uid()`** everywhere.
+- **RLS ON** for all 13 tables: each account-scoped table gets `account_id = auth.uid()` (USING + WITH
+  CHECK); `cross_account_aggregates` gets a read-only policy for any authenticated user. The §4 "disable
+  RLS for the demo" block is **replaced** by enabling RLS + these policies.
+- **Keys:** browser = anon/publishable key **+ the user session** (so RLS resolves); Route Handlers =
+  secret/service key to bypass RLS for server writes.
+- **No hardcoded `NEXT_PUBLIC_ACCOUNT_ID`.** The account id comes from the session
+  (`supabase.auth.getUser()` server-side, the session client-side). Seed data attaches to a **seeded demo
+  account** whose `id` matches a seeded demo auth user; Phase 3/5 gates that reference the literal UUID are
+  re-expressed against that demo account id.
+- **Reconciliation:** `0001_init` **drops** the 4 partner tables (`projects`, `posts`,
+  `social_connections`, `oauth_states`) and creates the 13 CONTRACT tables. Partner `supabase/schema.sql`
+  is superseded.
+- **Still deferred:** real GitHub *channel* publishing and Canva render — unchanged. (GitHub here is the
+  **login** provider, not a publish channel; the 4 publish channels remain Reddit/TikTok/Instagram/X.)
 
 ---
 
@@ -77,7 +99,8 @@ The agent is handed the following before it starts and assumes each is already s
 | Anthropic API key | `ANTHROPIC_API_KEY` | **HUMAN PRECONDITION** — console.anthropic.com key + **billing** |
 | Vercel token | `VERCEL_TOKEN` | **HUMAN PRECONDITION** — vercel.com → Account → Tokens; the **initial Vercel project link** is also a human precondition |
 | PostHog project key + host | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | from the PostHog project (already connected, project `363064`) |
-| Brew Lab demo tenant id (hardcoded literal) | `NEXT_PUBLIC_ACCOUNT_ID` | use the literal UUID `00000000-0000-0000-0000-00000b1e51ab` (see §3c/§4d) |
+| GitHub OAuth app (client id + secret) | set in **Supabase dashboard → Auth → Providers → GitHub** | **HUMAN PRECONDITION** — create a GitHub OAuth app, paste the callback URL Supabase gives you |
+| ~~Brew Lab demo tenant id (hardcoded literal)~~ | ~~`NEXT_PUBLIC_ACCOUNT_ID`~~ | **RETIRED 2026-06-27** — accounts are per-user (`account_id = auth.uid()`); no hardcoded literal. Seed data uses a seeded demo-account id (Phase 3, §4d). |
 
 If any **HUMAN PRECONDITION** is missing, stop and ask for it — do not attempt to self-provision.
 
@@ -103,11 +126,12 @@ so serverless cold-start/timeout on the live "Generate" is a real risk, engineer
 calls Route Handlers via `fetch`; Route Handlers talk to Anthropic + Supabase. The
 queue/cron/worker design is the documented **v1** path, not the demo path.
 
-**Auth for the demo = none.** Skip Supabase Auth + RLS for the build: one hardcoded `account_id`, RLS
-disabled (or fully permissive), the browser on the **publishable/anon** key. This removes an entire
-class of "why is my query empty" bugs. Real magic-link Auth + per-table RLS (`account_id = auth.uid()`)
-is a **v1** add. Onboarding still **persists the brand to a Supabase `brands` row** (not localStorage) so
-the Route Handler can read it server-side.
+**Auth for the demo = Supabase Auth + GitHub OAuth** *(SUPERSEDED 2026-06-27 — was "none"; see the
+§0.5 "Auth deltas" callout).* Login is the GitHub provider; **accounts are per-user** with
+`accounts.id = auth.uid()` and **RLS ON** (`account_id = auth.uid()`). The browser uses the
+**publishable/anon** key **with the user session** so RLS resolves; Route Handlers use the secret/service
+key to bypass RLS for server writes. Onboarding **persists the brand to a Supabase `brands` row** (not
+localStorage) so the Route Handler can read it server-side.
 
 **Secrets never touch the browser.** `ANTHROPIC_API_KEY`, any image-gen key, and the Supabase
 **secret/`service_role`** key are read only inside Route Handlers via `process.env.X` (unprefixed,

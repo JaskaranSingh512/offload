@@ -32,10 +32,11 @@
   uploads a brand doc and the AI recommends/pre-selects the lead channel(s) (fitness → IG/TikTok; B2B →
   X/Reddit) · `.md`/`.txt` only · **deferred:** Canva render (MCP vs Connect REST) + real GitHub auth —
   stop and ask before building those.
-- **Current position: Phase 0 DONE ✅ (branch `docs/phase-0-contract`).** `CONTRACT.md` is frozen —
-  plural 13-table list, `account_id` tenant key, two-column post status (`status`+`approval_state`), the
-  5 `posts.content` JSONB shapes + `founder_scripts` row shape, 3 term defs, **plus the `brands`
-  doc/recommendation columns from §0.5**. Phase 0 gate (§1) passes.
+- **Current position: Phase 0 DONE ✅ (branch `docs/phase-0-contract`).** `CONTRACT.md` is frozen (and
+  **amended 2026-06-27 for GitHub auth** — see §1a) — plural 13-table list, `account_id` tenant key
+  (now `= auth.uid()`, RLS ON), two-column post status (`status`+`approval_state`), the 5 `posts.content`
+  JSONB shapes + `founder_scripts` row shape, 3 term defs, **plus the `brands` doc/recommendation columns
+  from §0.5**. Phase 0 gate (§1) passes. **Partner schema conflict RESOLVED** (CONTRACT wins; see below).
 - **Next: Phase 1 — Services (§2).** Gate: `claude mcp list` shows `supabase` connected; `@anthropic-ai/sdk`
   requires after install; MCP `list_tables` returns; `ANTHROPIC_API_KEY` set in `.env.local`. NOTE: several
   items here are HUMAN PRECONDITIONS (Supabase project, Anthropic key+billing, Vercel token) — if any are
@@ -46,26 +47,24 @@
   its gate is green.**
 - `package.json` scripts `typecheck` / `lint` (eslint) / `test` turn on `verify.sh`.
 
-## ⚠️ BLOCKER — schema conflict with partner (opened 2026-06-27, awaiting partner sync)
-Partner authored `supabase/schema.sql` (the raw 12H-MVP model: Canva carousels + Supabase Auth).
-Our frozen `CONTRACT.md` (per EXECUTION_PLAN §0.5) is a different, incompatible model. **Do NOT apply
-`0001_init` or run Phase 3 until this is reconciled.** Decision deferred — user syncing with partner.
+## ✅ RESOLVED 2026-06-27 — schema conflict + auth decision
+**Decisions (user, 2026-06-27):**
+1. **CONTRACT.md wins** the reconciliation. `0001_init` will **drop** the 4 partner tables (`projects`,
+   `posts`, `social_connections`, `oauth_states`) and create the 13 CONTRACT tables. Partner
+   `supabase/schema.sql` is superseded. (Live audit: only 3 disposable rows — 0 projects, 0 posts, 1
+   social_connection, 2 oauth_states; **no migrations** in the ledger, tables were pasted raw.)
+2. **GitHub auth IS in the demo.** Supabase Auth + GitHub OAuth provider, **per-user accounts**
+   (`accounts.id = auth.uid()`, RLS **ON**, policy `account_id = auth.uid()`). The hardcoded Brew Lab
+   literal `…00000b1e51ab` is **retired** (stale frontend scaffolding). CONTRACT.md §1a + EXECUTION_PLAN
+   §0.5 "Auth deltas" hold the full model. `handle_new_user` trigger provisions the `accounts` row on
+   first sign-in; onboarding upserts `brands`.
 
-Conflicts (partner `schema.sql` → our `CONTRACT.md`):
-- `projects` (user_id, doc_name, doc_text, industry, best_channel, channel_reason) → should be **`brands`**
-  (account_id PK + doc_name/doc_text/industry/recommended_channels[]/channel_rationale). §0.5: `projects`
-  collapses into `brands`, no separate table.
-- **`posts`** — SAME NAME, incompatible cols. Partner: project_id, slides, caption, canva_*, status text.
-  Ours: account_id, campaign_id, channel, format, status enum, **approval_state**, scheduled_at, content jsonb.
-- `social_connections` (user_id) → ours is **`social_accounts`** (account_id, provider enum, scopes, status enum).
-- `oauth_states` (Canva PKCE) — Canva is a **deferred decision** (§0.5); shouldn't exist yet.
-- Partner refs `auth.users(id)` (Supabase Auth) → demo is **no-auth**, hardcoded account_id, RLS off.
-
-Live-DB state UNKNOWN: every JWT key in `.env.local` (anon + service_role) returns 401 "Invalid API key"
-despite correct ref (`rgkchbibpkduwnelpchh`)/role/exp → **legacy JWT keys disabled** (or JWT secret rotated).
-To read the live DB / connect MCP we need a **PAT (`sbp_…`)** or **new `sb_secret_`/`sb_publishable_` keys**.
-Supabase MCP server is registered in `.mcp.json` (project scope) but **Pending approval** — user will do
-`/mcp → Authenticate` (browser OAuth). `.env.local` also uses VITE_* names (Vite), not the Next.js NEXT_PUBLIC_*.
+**Audit findings (read-only, via Supabase MCP — the MCP works despite `claude mcp list` showing
+"Pending approval"):** live `public` schema = exactly the partner's 4 tables, all RLS-disabled (advisor
+flagged critical, aligns with our intent to manage RLS ourselves). `auth.*` is stock Supabase Auth
+(users=0). REST/JWT keys in `.env.local` still 401 (legacy JWT disabled) — use the **MCP** to read the DB,
+not the keys. `.env.local` still has VITE_* names; needs NEXT_PUBLIC_* + GitHub OAuth wired in Supabase
+dashboard (HUMAN PRECONDITION).
 
 ## Gotchas
 - 4 channels only (Reddit, TikTok, Instagram, X). Video is founder-posted, never auto-published.
