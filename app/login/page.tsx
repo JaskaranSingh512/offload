@@ -2,19 +2,33 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/lib/database.types";
 import { OffloadLogo } from "@/components/logo";
 import { I } from "@/components/icons";
 
-type AuthState = "checking" | "signed-out" | "signed-in";
+type AuthState = "checking" | "signed-out" | "signed-in" | "unconfigured";
 
 export default function LoginPage() {
-  const [supabase] = useState(() => createClient());
+  // Client is created in the browser only (inside the effect), never during the
+  // server prerender — createBrowserClient throws if the NEXT_PUBLIC_* env vars are
+  // missing, which would crash `next build`.
+  const [client, setClient] = useState<SupabaseClient<Database> | null>(null);
   const [state, setState] = useState<AuthState>("checking");
   const [email, setEmail] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    let supabase: SupabaseClient<Database>;
+    try {
+      supabase = createClient();
+    } catch {
+      setState("unconfigured");
+      return;
+    }
+    setClient(supabase);
+
     // Surface an OAuth callback error (read from the URL, no Suspense boundary needed).
     const err = new URLSearchParams(window.location.search).get("error");
     if (err) toast.error(`Sign-in failed: ${err}`);
@@ -38,11 +52,12 @@ export default function LoginPage() {
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   const signIn = async () => {
+    if (!client) return;
     setBusy(true);
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await client.auth.signInWithOAuth({
       provider: "github",
       options: { redirectTo: `${window.location.origin}/auth/callback?next=/login` },
     });
@@ -54,8 +69,9 @@ export default function LoginPage() {
   };
 
   const signOut = async () => {
+    if (!client) return;
     setBusy(true);
-    await supabase.auth.signOut();
+    await client.auth.signOut();
     toast.success("Signed out");
     setBusy(false);
   };
@@ -72,6 +88,18 @@ export default function LoginPage() {
             <>
               <div className="onb-step-label">Authentication</div>
               <h1 className="onb-title">Checking session…</h1>
+            </>
+          )}
+
+          {state === "unconfigured" && (
+            <>
+              <div className="onb-step-label">Authentication</div>
+              <h1 className="onb-title">Supabase isn&rsquo;t configured</h1>
+              <p className="onb-sub">
+                Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+                <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in <code>.env.local</code>
+                {" "}(see <code>.env.example</code>), then restart the dev server.
+              </p>
             </>
           )}
 
