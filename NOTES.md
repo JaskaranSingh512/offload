@@ -1,12 +1,21 @@
 # NOTES — edit/overwrite freely, keep it short.
 
 ## What works
-- Nothing built yet. Repo has PRD.md + EXECUTION_PLAN.md only; app not scaffolded.
+- **Frontend is built and scaffolded** (branch `feat/frontend-tether`). Next.js 16 App Router
+  app ported 1:1 from the `UI for offload/` React prototype ("Tether"): onboarding flow +
+  5 screens (Dashboard, Calendar, Campaign Builder, Scripts, Analytics) + content-detail drawer.
+  All client-side state routing in `app/page.tsx`. Mock data in `lib/data.tsx`.
+- `./verify.sh` passes (typecheck + lint + `vitest`) and `next build` is green.
+- `npm run dev` serves at :3000; onboarding SSRs correctly.
 
 ## Stack (locked)
-- Next.js 16 (App Router) + TypeScript + shadcn/ui + Tailwind v4, deployed on Vercel.
-- Supabase backend. AI endpoints (`/api/generate`, `/api/chat-edit`) = Next.js Route Handlers (no Express).
-- Build directly in TSX from PRD §5/§6 — no JSX prototype.
+- Next.js 16 (App Router) + TypeScript + Tailwind v4, deployed on Vercel. Supabase backend.
+- AI endpoints (`/api/generate`, `/api/chat-edit`) = Next.js Route Handlers (no Express).
+- **Design system note:** the visual design is a bespoke hand-rolled CSS system (ported verbatim
+  to `app/globals.css` from the prototype's `styles.css`), NOT shadcn/ui. Tailwind v4 is wired up
+  for any future components, but screens use the prototype's own classes for pixel fidelity.
+  This supersedes the earlier "build from PRD §5/§6, no JSX prototype" plan — we now have the
+  prototype and the user asked to build directly from it.
 
 ## What's next
 - **Read EXECUTION_PLAN.md** — it's now a runbook for an autonomous coding agent (Claude Code), ordered
