@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { I, type IconProps } from "@/components/icons";
 
 // ===== Types =====
-export type Route = "dashboard" | "calendar" | "builder" | "scripts" | "analytics";
 export type ChannelId = "reddit" | "tiktok" | "instagram" | "x";
 export type PostKind = "reddit" | "carousel" | "tiktok" | "thread";
 
@@ -85,9 +84,6 @@ export const channelMeta: Record<ChannelId, ChannelMeta> = {
   instagram: { name: "Instagram", color: "#E1306C", Icon: (p) => <I.Instagram {...p} /> },
   x: { name: "X", color: "#000000", Icon: (p) => <I.XLogo {...p} /> },
 };
-
-// 14-day campaign starting Mon, May 5, 2025 (visual labels only)
-export const weekDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
 // Generate 14 days × ~3 posts. Each post: id, day(0-13), time, channel, type, title, body data
 export const posts: Post[] = [
