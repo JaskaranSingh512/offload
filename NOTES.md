@@ -24,13 +24,22 @@
   prototype and the user asked to build directly from it.
 
 ## What's next
-- **Read EXECUTION_PLAN.md** — it's now a runbook for an autonomous coding agent (Claude Code), ordered
-  Phase 0..8 with exact non-interactive commands, file paths, and a per-phase Verification gate.
-- Phase 0 FIRST: freeze the data contract (`CONTRACT.md`: plural tables, `account_id`, two-column post
-  status, content JSONB shapes) before any code.
-- Then: Phase 1 services (Supabase + MCP, Anthropic key, Vercel) → Phase 2 scaffold → Phase 3 schema +
-  types + seed → Phase 4 surfaces → Phase 5 AI Route Handlers → Phase 6 OAuth/publish mock → Phase 7
-  integrate + deploy → Phase 8 Playwright e2e + PR.
+- **Active scope = the 12-Hour MVP integrated into `EXECUTION_PLAN.md` — read §0.5 FIRST.** We build on
+  the Next.js + Supabase phased rails (Phase 0 → 8), with the MVP's "brand doc → AI channel strategy"
+  folded in. CLAUDE.md → "Execution phases" has the phase table + the **done = gate passes** and
+  **commit-per-phase** rules.
+- **MVP decisions locked (2026-06-27):** Next.js (not Vite/Express) · **all 4 channels**, but onboarding
+  uploads a brand doc and the AI recommends/pre-selects the lead channel(s) (fitness → IG/TikTok; B2B →
+  X/Reddit) · `.md`/`.txt` only · **deferred:** Canva render (MCP vs Connect REST) + real GitHub auth —
+  stop and ask before building those.
+- **Current position: nothing built — Phase 0 not started.** Do Phase 0 FIRST: write `CONTRACT.md`
+  (plural tables, `account_id`, two-column post status, the 5 content JSONB shapes + founder_scripts
+  shape, 3 term defs, **plus the new `brands` doc/recommendation columns from §0.5**) before any SQL or
+  TSX. Its gate (§1) blocks everything.
+- Then in order: Phase 1 services → 2 scaffold → 3 schema + types + seed → 4 surfaces (incl. onboarding
+  doc upload + AI suggestion) → 5 AI Route Handlers (`/api/generate`, `/api/chat-edit`, **`/api/analyze`**)
+  → 6 OAuth/publish mock → 7 integrate + deploy → 8 Playwright e2e + PR. **Commit after each phase once
+  its gate is green.**
 - `package.json` scripts `typecheck` / `lint` (eslint) / `test` turn on `verify.sh`.
 
 ## Gotchas
@@ -38,16 +47,3 @@
 - Live demo runs from the deployed Vercel URL — engineer around serverless cold-start/timeout with a
   cached golden-payload fallback.
 - Nothing built yet. Repo has docs only; app not scaffolded.
-
-## What's next
-- **Read MVP_12H.md** — the re-scoped 12-hour hackathon build plan. This is the plan we're
-  actually executing.
-- `PRD.md` / `EXECUTION_PLAN.md` are the bigger "full vision" — reference only, not the 12h build.
-- New scope: GitHub login → connect socials (mock) → upload PRD → AI picks best platform →
-  AI writes slides → Canva renders slideshow → "post" (mock + download).
-
-## Gotchas
-- Real social posting (IG/TikTok) can't pass platform review in the timebox — it's mocked.
-- New MVP diverges from CLAUDE.md/PRD (single best channel + Canva). Decide post-review whether
-  to update those docs or keep them as long-term vision.
-```

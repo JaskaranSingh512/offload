@@ -22,6 +22,45 @@ Anthropic SDK, `git`, `gh`, `npm`, the `vercel` CLI, and the PostHog MCP.
 
 ---
 
+## 0.5 Active scope — 12-Hour MVP, integrated (READ FIRST; amends the phases below)
+
+We are building the **12-Hour MVP** (`MVP_12H.md`) **on these EXECUTION_PLAN Next.js + Supabase + phased
+rails**. This section is the **active scope**: where it conflicts with a phase below, **this wins**.
+Phases 0→8 and their Verification gates still apply — what follows are the deltas, plus the per-phase
+**done = gate passes** + **commit-per-phase** rules from CLAUDE.md.
+
+**Locked decisions (2026-06-27):**
+- **Stack:** Next.js (App Router) + Route Handlers + Supabase — **not** Vite/Express. Keep §3 scaffold as-is.
+- **Channels:** build **all 4** (Reddit, TikTok, Instagram, X). NEW: onboarding uploads a brand doc and
+  the AI **recommends which channel(s) to lead with** (e.g. fitness app → Instagram/TikTok; B2B/professional
+  → X/Reddit) with a one-paragraph rationale. The recommendation **pre-selects** channels; it does not
+  restrict — the founder can still run all 4. The "4 channels only" constraint is intact.
+- **Doc upload:** `.md` / `.txt` only for v1 — no PDF parsing. Extract text, store it on the brand.
+- **Canva slideshow render:** **DECISION DEFERRED.** When we build slide rendering (the §6d IG-carousel /
+  slideshow step), **stop and ask: Canva MCP vs Canva Connect REST.** Until then keep the satori→PNG path
+  as the placeholder renderer.
+- **GitHub auth:** MVP_12H wants real GitHub login; this plan's demo currently runs **no-auth** (§0).
+  **OPEN — confirm before Phase 4** whether to add Supabase GitHub OAuth or keep the hardcoded `account_id`.
+
+**New feature folded in — "brand doc → channel strategy":**
+- **Data (Phase 0 + 3):** extend the `brands` table with `doc_name text`, `doc_text text`, `industry text`,
+  `recommended_channels text[]`, `channel_rationale text`. **No new table** — the MVP's `projects` collapses
+  into the existing account-scoped `brands` row. Reflect these columns in `CONTRACT.md` (Phase 0 gate) and
+  the migration (Phase 3, §4a).
+- **Surface (Phase 4):** onboarding gains an **Upload brand doc** step before the channel toggles; after
+  upload it shows the AI suggestion ("We'd lead on **Instagram + TikTok** because …") with the recommended
+  channels pre-toggled.
+- **AI (Phase 5):** new Route Handler **`/api/analyze`** — Claude reads `doc_text` and returns
+  `{ industry, recommended_channels[], channel_rationale }` via a strict tool; persists to the brand row.
+  It sits alongside `/api/generate` + `/api/chat-edit` (same model-tiering rules, §6a).
+- **Demo path (§9):** step 1 (onboarding) now includes **doc upload → AI channel recommendation** before
+  the live "Generate."
+
+**Unchanged by the MVP:** the two-column post-status model, 4-channel campaign generation, founder-posted
+video (never auto-published), all mock publishing, the golden-payload fallback, and every Verification gate.
+
+---
+
 ## Preconditions — human-provided inputs (the agent assumes these exist)
 
 The agent is handed the following before it starts and assumes each is already set in the environment
