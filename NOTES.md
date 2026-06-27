@@ -73,25 +73,27 @@ service_role). Partner confirmed GitHub OAuth is set up in the Supabase dashboar
 - **Phase 0 DONE** (contract, amended for auth). **Phase 1 DONE** (`npm install`; sdk + key + MCP gate
   green — commit `629e385`). **Phase 2 DONE** (`./verify.sh` exits 0 — typecheck+lint+3 tests; `next build`
   prerenders all 7 routes).
-- **Phase 3 (Schema + seed) APPLIED + verified (types PENDING).** `0001_init` applied as migration
-  `20260627221415`: dropped the 4 partner tables, created the 13 CONTRACT tables, `handle_new_user`
-  trigger, RLS ON with showcase policies (own rows rw + `DEMO_ACCOUNT_ID …00000b1e51ab` read-only), and
-  the `brand-assets` bucket. `seed.sql` loaded the Brew Lab showcase: **22 posts**, every table ≥1 row
-  (post_metrics 42, founder_scripts 5, etc.). `accounts`=2 → the trigger already fired for a real GitHub
-  sign-in (partner tested login). Files: `supabase/migrations/0001_init.sql`, `supabase/seed.sql`.
+- **Phase 3 (Schema + types + seed) DONE ✅.** `0001_init` (migration `20260627221415`): dropped the 4
+  partner tables, created the 13 CONTRACT tables, `handle_new_user` trigger, RLS ON with showcase policies
+  (own rows rw + `DEMO_ACCOUNT_ID …00000b1e51ab` read-only), `brand-assets` bucket. `seed.sql` loaded the
+  Brew Lab showcase: **22 posts**, every table ≥1 row (post_metrics 42, founder_scripts 5, etc.).
+  `accounts`=2 → trigger already fired for a real GitHub sign-in. Types regenerated to
+  `lib/database.types.ts`; `typecheck` exits 0. Gate green. `0002_canva_oauth_states` codifies the Canva
+  integration (below).
+- **Next: Phase 4 — Surfaces (live wiring).** Build `lib/supabase/{client,server,admin}.ts` + a typed
+  `lib/api.ts` over `lib/database.types.ts`; swap the mock `lib/data.tsx` reads for live Supabase reads
+  behind `USE_MOCK`; add onboarding brand-doc upload + AI channel suggestion. Wire GitHub login (Supabase
+  Auth) so `auth.uid()` resolves. Gate (§5): mock renders all 5 surfaces + drawer + chat; live reads work
+  with `USE_MOCK=false`; `./verify.sh` exits 0.
 
-## ⚠️ NEW — partner concurrent schema change mid-session (2026-06-27, NEEDS DECISION)
-While Phase 3 was running, the partner modified the **shared** DB out-of-band (not via a tracked
-migration — ledger shows only our `0001_init`):
-- Added **`canva`** to the `provider_t` enum (now reddit,x,instagram,tiktok,**canva**). Enum-add is
-  effectively irreversible in PG.
-- (Re)created an **`oauth_states`** table — now `account_id`-keyed (state uuid, account_id, provider,
-  code_verifier, created_at): a **Canva OAuth PKCE** table, adopting our `account_id` model.
-This is the partner **building Canva**, which is a **DEFERRED decision** per CLAUDE.md / EXECUTION_PLAN
-§0.5 ("stop and ask before building Canva"). **I did NOT revert their changes** (would repeat the
-original conflict). **TS types NOT yet regenerated/committed** — a fresh snapshot now embeds `oauth_states`
-+ `canva` into our typed layer, so it's held until we decide whether Canva is in scope. Need to sync with
-the partner.
+## ✅ RESOLVED — Canva un-deferred (2026-06-27)
+The partner added Canva to the **shared** DB mid-session (out-of-band: `canva` in `provider_t` + an
+`account_id`-keyed `oauth_states` PKCE table). **Decision: Canva is IN.** Codified + RLS-secured in
+migration `0002_canva_oauth_states` (own-account policy on `oauth_states`). Canva is an **asset/OAuth
+integration, NOT a 5th publishing channel** — the 4-channel publish rule (Reddit/TikTok/Instagram/X)
+stands. The Canva **render approach** (Canva MCP vs Connect REST, §6d) is still the partner's call —
+coordinate before wiring the slideshow render. **Process note:** the partner edits the shared DB
+out-of-band (no tracked migrations); expect drift and re-check `list_tables`/enums before schema work.
 
 ## Gotchas
 - 4 channels only (Reddit, TikTok, Instagram, X). Video is founder-posted, never auto-published.

@@ -36,9 +36,13 @@ Phases 0→8 and their Verification gates still apply — what follows are the d
   → X/Reddit) with a one-paragraph rationale. The recommendation **pre-selects** channels; it does not
   restrict — the founder can still run all 4. The "4 channels only" constraint is intact.
 - **Doc upload:** `.md` / `.txt` only for v1 — no PDF parsing. Extract text, store it on the brand.
-- **Canva slideshow render:** **DECISION DEFERRED.** When we build slide rendering (the §6d IG-carousel /
-  slideshow step), **stop and ask: Canva MCP vs Canva Connect REST.** Until then keep the satori→PNG path
-  as the placeholder renderer.
+- **Canva:** **UN-DEFERRED 2026-06-27 — Canva is in.** The partner is building the Canva OAuth connect
+  flow (added `canva` to `provider_t` + an `oauth_states` PKCE table; now codified + RLS-secured in
+  migration `0002_canva_oauth_states`). Canva is an **asset/OAuth integration, NOT a 5th publishing
+  channel** — the "4 channels only" publish constraint (Reddit/TikTok/Instagram/X) is intact; `canva` only
+  appears as a `social_accounts`/`oauth_states` provider for design rendering. The Canva **render
+  approach** (Canva MCP vs Connect REST) is still the partner's call — coordinate before wiring the
+  §6d slideshow render; satori→PNG stays the fallback placeholder.
 - **GitHub auth:** **RESOLVED 2026-06-27 — GitHub login IS in the demo.** Use **Supabase Auth + the
   GitHub OAuth provider** with **per-user accounts**: `accounts.id = auth.uid()`, RLS **ON**, policy
   `account_id = auth.uid()`. The old no-auth / single-hardcoded-`account_id` / RLS-off model (§0 below)

@@ -70,6 +70,14 @@ All table names are **plural**. The full frozen list (13 tables):
 Tenant scoping: every table is `account_id`-scoped **except** `cross_account_aggregates`, which is global
 (cross-account benchmark rows, seeded).
 
+> **Canva integration (un-deferred 2026-06-27).** A 14th table, **`oauth_states`** (`state, account_id,
+> provider, code_verifier, created_at` — short-lived Canva OAuth PKCE state), is tracked in migration
+> `0002_canva_oauth_states` with RLS (own-account only). The `provider_t` enum gains a **`canva`** value.
+> Canva is an **asset/OAuth integration, NOT a 5th publishing channel** — the "4 channels only" publish
+> rule stands; `canva` only ever appears as a `social_accounts`/`oauth_states` provider. `oauth_states` is
+> a transient runtime table (not seeded), so the "every table ≥1 row" seed expectation covers the 13
+> CONTRACT tables, not it.
+
 #### `brands` — extended for the "brand doc → channel strategy" feature (§0.5)
 
 `brands.account_id` is the **PRIMARY KEY** (one brand per account). In addition to the base brand columns
