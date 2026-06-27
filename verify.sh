@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# Run typecheck + lint + test as one command. Fails OPEN until the app is
-# scaffolded with matching npm scripts — never blocks you mid-sprint.
+# Run typecheck + lint + test as one command. Fails OPEN until the Next.js app
+# is scaffolded with matching npm scripts — never blocks you mid-sprint.
+# Expected package.json scripts once scaffolded (see EXECUTION_PLAN.md §3e):
+#   typecheck -> tsc --noEmit
+#   lint      -> eslint .      (NOT `next lint` — removed in Next.js 16)
+#   test      -> vitest run
 set -uo pipefail
 cd "$(dirname "$0")"
 
