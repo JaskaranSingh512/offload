@@ -32,10 +32,14 @@
   uploads a brand doc and the AI recommends/pre-selects the lead channel(s) (fitness → IG/TikTok; B2B →
   X/Reddit) · `.md`/`.txt` only · **deferred:** Canva render (MCP vs Connect REST) + real GitHub auth —
   stop and ask before building those.
-- **Current position: nothing built — Phase 0 not started.** Do Phase 0 FIRST: write `CONTRACT.md`
-  (plural tables, `account_id`, two-column post status, the 5 content JSONB shapes + founder_scripts
-  shape, 3 term defs, **plus the new `brands` doc/recommendation columns from §0.5**) before any SQL or
-  TSX. Its gate (§1) blocks everything.
+- **Current position: Phase 0 DONE ✅ (branch `docs/phase-0-contract`).** `CONTRACT.md` is frozen —
+  plural 13-table list, `account_id` tenant key, two-column post status (`status`+`approval_state`), the
+  5 `posts.content` JSONB shapes + `founder_scripts` row shape, 3 term defs, **plus the `brands`
+  doc/recommendation columns from §0.5**. Phase 0 gate (§1) passes.
+- **Next: Phase 1 — Services (§2).** Gate: `claude mcp list` shows `supabase` connected; `@anthropic-ai/sdk`
+  requires after install; MCP `list_tables` returns; `ANTHROPIC_API_KEY` set in `.env.local`. NOTE: several
+  items here are HUMAN PRECONDITIONS (Supabase project, Anthropic key+billing, Vercel token) — if any are
+  missing, stop and ask; do not self-provision.
 - Then in order: Phase 1 services → 2 scaffold → 3 schema + types + seed → 4 surfaces (incl. onboarding
   doc upload + AI suggestion) → 5 AI Route Handlers (`/api/generate`, `/api/chat-edit`, **`/api/analyze`**)
   → 6 OAuth/publish mock → 7 integrate + deploy → 8 Playwright e2e + PR. **Commit after each phase once
