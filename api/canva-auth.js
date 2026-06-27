@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     client_id: process.env.CANVA_CLIENT_ID,
     response_type: "code",
     redirect_uri: process.env.CANVA_REDIRECT_URI,
-    scope: "design:content:write design:content:read design:meta:read asset:read",
+    scope: "design:content:write design:meta:read asset:write",
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
     state,
