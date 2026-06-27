@@ -10,44 +10,37 @@ function base64urlEncode(buffer) {
   return buffer.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 
-function generateCodeVerifier() {
-  return base64urlEncode(crypto.randomBytes(32));
-}
-
-function generateCodeChallenge(verifier) {
-  return base64urlEncode(crypto.createHash("sha256").update(verifier).digest());
-}
+function generateCodeVerifier()  { return base64urlEncode(crypto.randomBytes(32)); }
+function generateCodeChallenge(v) { return base64urlEncode(crypto.createHash("sha256").update(v).digest()); }
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
 
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: "user_id required as query param" });
+  const { account_id } = req.query;
+  if (!account_id) return res.status(400).json({ error: "account_id required" });
 
-  const codeVerifier = generateCodeVerifier();
+  const codeVerifier  = generateCodeVerifier();
   const codeChallenge = generateCodeChallenge(codeVerifier);
-  const state = crypto.randomUUID();
+  const state         = crypto.randomUUID();
 
-  // Store state + verifier temporarily so the callback can retrieve it
-  const { error: dbError } = await supabase.from("oauth_states").insert({
+  const { error } = await supabase.from("oauth_states").insert({
     state,
-    user_id,
+    account_id,
     code_verifier: codeVerifier,
-    provider: "canva",
-    created_at: new Date().toISOString(),
+    provider:      "canva",
   });
 
-  if (dbError) {
-    console.error("Failed to store oauth state:", dbError);
-    return res.status(500).json({ error: "Failed to initiate OAuth", detail: dbError.message });
+  if (error) {
+    console.error("Failed to store oauth state:", error);
+    return res.status(500).json({ error: "Failed to initiate OAuth", detail: error.message });
   }
 
   const params = new URLSearchParams({
-    client_id: process.env.CANVA_CLIENT_ID,
-    response_type: "code",
-    redirect_uri: process.env.CANVA_REDIRECT_URI,
-    scope: "design:content:write design:meta:read asset:write",
-    code_challenge: codeChallenge,
+    client_id:             process.env.CANVA_CLIENT_ID,
+    response_type:         "code",
+    redirect_uri:          process.env.CANVA_REDIRECT_URI,
+    scope:                 "design:content:write design:meta:read asset:write",
+    code_challenge:        codeChallenge,
     code_challenge_method: "S256",
     state,
   });
