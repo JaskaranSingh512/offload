@@ -57,9 +57,16 @@ export default function LoginPage() {
   const signIn = async () => {
     if (!client) return;
     setBusy(true);
+    // After the OAuth round-trip, land on wherever the gate sent us from
+    // (?next=…), defaulting to the dashboard. Avoid bouncing back to /login.
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("next");
+    const next = requested && requested !== "/login" ? requested : "/";
     const { error } = await client.auth.signInWithOAuth({
       provider: "github",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/login` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     });
     if (error) {
       toast.error(error.message);
