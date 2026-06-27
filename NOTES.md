@@ -46,6 +46,27 @@
   its gate is green.**
 - `package.json` scripts `typecheck` / `lint` (eslint) / `test` turn on `verify.sh`.
 
+## ⚠️ BLOCKER — schema conflict with partner (opened 2026-06-27, awaiting partner sync)
+Partner authored `supabase/schema.sql` (the raw 12H-MVP model: Canva carousels + Supabase Auth).
+Our frozen `CONTRACT.md` (per EXECUTION_PLAN §0.5) is a different, incompatible model. **Do NOT apply
+`0001_init` or run Phase 3 until this is reconciled.** Decision deferred — user syncing with partner.
+
+Conflicts (partner `schema.sql` → our `CONTRACT.md`):
+- `projects` (user_id, doc_name, doc_text, industry, best_channel, channel_reason) → should be **`brands`**
+  (account_id PK + doc_name/doc_text/industry/recommended_channels[]/channel_rationale). §0.5: `projects`
+  collapses into `brands`, no separate table.
+- **`posts`** — SAME NAME, incompatible cols. Partner: project_id, slides, caption, canva_*, status text.
+  Ours: account_id, campaign_id, channel, format, status enum, **approval_state**, scheduled_at, content jsonb.
+- `social_connections` (user_id) → ours is **`social_accounts`** (account_id, provider enum, scopes, status enum).
+- `oauth_states` (Canva PKCE) — Canva is a **deferred decision** (§0.5); shouldn't exist yet.
+- Partner refs `auth.users(id)` (Supabase Auth) → demo is **no-auth**, hardcoded account_id, RLS off.
+
+Live-DB state UNKNOWN: every JWT key in `.env.local` (anon + service_role) returns 401 "Invalid API key"
+despite correct ref (`rgkchbibpkduwnelpchh`)/role/exp → **legacy JWT keys disabled** (or JWT secret rotated).
+To read the live DB / connect MCP we need a **PAT (`sbp_…`)** or **new `sb_secret_`/`sb_publishable_` keys**.
+Supabase MCP server is registered in `.mcp.json` (project scope) but **Pending approval** — user will do
+`/mcp → Authenticate` (browser OAuth). `.env.local` also uses VITE_* names (Vite), not the Next.js NEXT_PUBLIC_*.
+
 ## Gotchas
 - 4 channels only (Reddit, TikTok, Instagram, X). Video is founder-posted, never auto-published.
 - Live demo runs from the deployed Vercel URL — engineer around serverless cold-start/timeout with a
