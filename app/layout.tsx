@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -23,9 +24,9 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Tether — Marketing on Autopilot",
+  title: "Offload — Marketing on Autopilot",
   description:
-    "Tell us about your brand once. Tether researches your market, builds a 2-week multi-channel campaign, schedules it, and tells you what's working.",
+    "Tell us about your brand once. Offload researches your market, builds a 2-week multi-channel campaign, schedules it, and tells you what's working.",
 };
 
 export default function RootLayout({
@@ -35,7 +36,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

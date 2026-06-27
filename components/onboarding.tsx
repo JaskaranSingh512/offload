@@ -1,26 +1,35 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { I } from "@/components/icons";
 import { Toggle } from "@/components/ui";
+import { OffloadLogo, OffloadMark } from "@/components/logo";
+import { ONBOARDED_KEY } from "@/components/first-run-gate";
 import type { ChannelId } from "@/lib/data";
 
 // ===== ONBOARDING FLOW =====
-export const Onboarding = ({ onComplete }: { onComplete: () => void }) => {
+export const Onboarding = () => {
+  const router = useRouter();
   const [step, setStep] = useState(0);
-  const steps = ["welcome", "brand", "audience", "channels", "loading"];
+  const steps = ["welcome", "brand", "audience", "channels", "connect", "loading"];
   const progress = ((step + 1) / steps.length) * 100;
 
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
   const prev = () => setStep((s) => Math.max(s - 1, 0));
+  const complete = () => {
+    try {
+      localStorage.setItem(ONBOARDED_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    router.push("/");
+  };
 
   return (
     <div className="onb-wrap">
       <div className="onb-topbar">
-        <div className="sidebar-logo" style={{ padding: 0, border: "none", margin: 0 }}>
-          <span className="mark">t</span>
-          <span className="wordmark">Tether</span>
-        </div>
+        <OffloadLogo markSize={24} wordSize={20} />
         <div className="onb-progress">
           <span>
             Step {step + 1} of {steps.length}
@@ -36,7 +45,8 @@ export const Onboarding = ({ onComplete }: { onComplete: () => void }) => {
         {step === 1 && <BrandStep onNext={next} onBack={prev} />}
         {step === 2 && <AudienceStep onNext={next} onBack={prev} />}
         {step === 3 && <ChannelsStep onNext={next} onBack={prev} />}
-        {step === 4 && <LoadingStep onComplete={onComplete} />}
+        {step === 4 && <ConnectStep onNext={next} onBack={prev} />}
+        {step === 5 && <LoadingStep onComplete={complete} />}
       </div>
     </div>
   );
@@ -44,11 +54,11 @@ export const Onboarding = ({ onComplete }: { onComplete: () => void }) => {
 
 const Welcome = ({ onNext }: { onNext: () => void }) => (
   <div className="onb-card welcome-hero">
-    <div className="onb-step-label">Welcome to Tether</div>
+    <div className="onb-step-label">Welcome to Offload</div>
     <h1 className="word">
       Marketing,
       <br />
-      <span className="em">on a tether.</span>
+      <span className="em">offloaded.</span>
     </h1>
     <p className="tagline">
       Tell us about your brand once. We&apos;ll research your market, build a 2-week multi-channel campaign, schedule it, and tell you what&apos;s working.
@@ -168,7 +178,7 @@ const BrandStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => void 
           <span className="field-label">Brand voice</span>
           <div className="opt-grid">
             {voices.map((v) => (
-              <button key={v.id} className={`opt-card ${voice === v.id ? "on" : ""}`} onClick={() => setVoice(v.id)}>
+              <button key={v.id} className={`opt-card ${voice === v.id ? "on" : ""}`} aria-pressed={voice === v.id} onClick={() => setVoice(v.id)}>
                 <div className="opt-icon">
                   <I.Mic size={16} />
                 </div>
@@ -177,6 +187,23 @@ const BrandStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => void 
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="field">
+          <span className="field-label">Brand assets</span>
+          <div className="asset-row">
+            {["Logo mark", "Product photo", "Label shot"].map((label) => (
+              <div key={label} className="asset-tile">
+                <I.Image size={18} />
+                <span>{label}</span>
+              </div>
+            ))}
+            <button className="asset-tile asset-add" type="button">
+              <I.Upload size={16} />
+              <span>Upload</span>
+            </button>
+          </div>
+          <span className="field-hint">Logos, product photos, and fonts. Offload composes carousels and overlays from these so visuals stay on-brand.</span>
         </div>
       </div>
 
@@ -210,7 +237,7 @@ const AudienceStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => vo
       <h1 className="onb-title">
         Who are you reaching, <span className="em">and why?</span>
       </h1>
-      <p className="onb-sub">The clearer this is, the better Tether&apos;s first campaign will be.</p>
+      <p className="onb-sub">The clearer this is, the better Offload&apos;s first campaign will be.</p>
 
       <div className="flex flex-col gap-4">
         <label className="field">
@@ -223,7 +250,7 @@ const AudienceStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => vo
           <span className="field-label">What are you trying to accomplish?</span>
           <div className="opt-grid">
             {goals.map((g) => (
-              <button key={g.id} className={`opt-card ${goal === g.id ? "on" : ""}`} onClick={() => setGoal(g.id)}>
+              <button key={g.id} className={`opt-card ${goal === g.id ? "on" : ""}`} aria-pressed={goal === g.id} onClick={() => setGoal(g.id)}>
                 <div className="opt-icon">
                   <g.icon size={16} />
                 </div>
@@ -263,7 +290,7 @@ const ChannelsStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => vo
         Where should we <span className="em">publish?</span>
       </h1>
       <p className="onb-sub">
-        Toggle the channels you want Tether to plan content for. You can add more later — these defaults work for most brands.
+        Toggle the channels you want Offload to plan content for. You can add more later — these defaults work for most brands.
       </p>
 
       <div className="flex flex-col gap-2">
@@ -295,13 +322,94 @@ const ChannelsStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => vo
         }}
       >
         <I.Bell size={14} style={{ marginTop: 1, flexShrink: 0, color: "var(--espresso)" }} />
-        <span>This is a prototype — channel connections are simulated. In production you&apos;d OAuth each platform here.</span>
+        <span>Next, you&apos;ll connect these accounts so Offload can publish on your behalf and learn from your post history.</span>
       </div>
 
       <div className="onb-actions">
         <button className="btn btn-ghost" onClick={onBack}>
           <I.ArrowLeft size={14} /> Back
         </button>
+        <button className="btn btn-primary" style={{ marginLeft: "auto" }} onClick={onNext}>
+          Continue <I.Arrow />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const ConnectStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => void }) => {
+  const [connected, setConnected] = useState<Record<ChannelId, boolean>>({ reddit: false, tiktok: false, instagram: false, x: false });
+  const channels: { id: ChannelId; name: string; handle: string; color: string; Icon: typeof I.Reddit }[] = [
+    { id: "reddit", name: "Reddit", handle: "u/brewlab_andre", color: "#FF4500", Icon: I.Reddit },
+    { id: "tiktok", name: "TikTok", handle: "@brewlab", color: "#111111", Icon: I.TikTok },
+    { id: "instagram", name: "Instagram", handle: "@brewlab.co", color: "#E1306C", Icon: I.Instagram },
+    { id: "x", name: "X", handle: "@brewlab", color: "#000000", Icon: I.XLogo },
+  ];
+  const anyConnected = Object.values(connected).some(Boolean);
+
+  return (
+    <div className="onb-card">
+      <div className="onb-step-label">04 · Connect accounts</div>
+      <h1 className="onb-title">
+        Connect your <span className="em">handles.</span>
+      </h1>
+      <p className="onb-sub">
+        Offload reads your post history to personalize the campaign, and publishes approved posts for you. Read-only to start — you grant
+        publishing access per channel later.
+      </p>
+
+      <div className="flex flex-col gap-2">
+        {channels.map((c) => (
+          <div key={c.id} className={`channel-card ${connected[c.id] ? "on" : ""}`}>
+            <div className="ch-icon" style={{ background: c.color }}>
+              <c.Icon size={20} />
+            </div>
+            <div className="ch-meta">
+              <h4 className="ch-name">{c.name}</h4>
+              <p className="ch-desc">{connected[c.id] ? `Connected · ${c.handle}` : "Not connected"}</p>
+            </div>
+            {connected[c.id] ? (
+              <span className="chip chip-teal" style={{ flexShrink: 0 }}>
+                <I.Check size={12} /> Connected
+              </span>
+            ) : (
+              <button className="btn btn-secondary btn-sm" onClick={() => setConnected({ ...connected, [c.id]: true })}>
+                Connect
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          marginTop: 16,
+          padding: "12px 14px",
+          background: "var(--cream)",
+          borderRadius: 10,
+          fontSize: 12.5,
+          color: "var(--text-muted)",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 10,
+        }}
+      >
+        <I.Bell size={14} style={{ marginTop: 1, flexShrink: 0, color: "var(--espresso)" }} />
+        <span>
+          Connections are simulated in this build (real OAuth needs platform review). You can skip and Offload will run in manual-post mode —
+          it drafts, you post.
+        </span>
+      </div>
+
+      <div className="onb-actions">
+        <button className="btn btn-ghost" onClick={onBack}>
+          <I.ArrowLeft size={14} /> Back
+        </button>
+        {!anyConnected && (
+          <button className="btn btn-ghost" onClick={onNext}>
+            Skip for now
+          </button>
+        )}
         <button className="btn btn-primary" style={{ marginLeft: "auto" }} onClick={onNext}>
           Generate my first campaign <I.Sparkle size={14} />
         </button>
@@ -343,7 +451,7 @@ const LoadingStep = ({ onComplete }: { onComplete: () => void }) => {
   return (
     <div className="loader-wrap" style={{ minHeight: "auto", flex: 1, width: "100%" }}>
       <div className="loader-card">
-        <div className="loader-mark">t</div>
+        <div className="loader-mark"><OffloadMark size={34} /></div>
         <h2 className="loader-title">Building your first campaign</h2>
         <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0 }}>
           This usually takes about 3 seconds. In production it&apos;d be more like 30.

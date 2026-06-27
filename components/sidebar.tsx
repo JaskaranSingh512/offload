@@ -1,45 +1,44 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { I } from "@/components/icons";
-import type { Route } from "@/lib/data";
+import { OffloadLogo } from "@/components/logo";
 
-export const Sidebar = ({ route, setRoute }: { route: Route; setRoute: (r: Route) => void }) => {
-  const items: { id: Route; label: string; icon: typeof I.Home; badge?: number }[] = [
-    { id: "dashboard", label: "Dashboard", icon: I.Home },
-    { id: "calendar", label: "Calendar", icon: I.Calendar, badge: 35 },
-    { id: "scripts", label: "Scripts", icon: I.Scripts, badge: 4 },
-    { id: "analytics", label: "Analytics", icon: I.Chart },
-  ];
-  const tools: { id: Route; label: string; icon: typeof I.Plus }[] = [
-    { id: "builder", label: "New campaign", icon: I.Plus },
-  ];
+const NAV = [
+  { href: "/", label: "Dashboard", icon: I.Home },
+  { href: "/calendar", label: "Calendar", icon: I.Calendar, badge: 35 },
+  { href: "/scripts", label: "Scripts", icon: I.Scripts, badge: 4 },
+  { href: "/analytics", label: "Analytics", icon: I.Chart },
+] as const;
+
+const TOOLS = [{ href: "/build", label: "New campaign", icon: I.Plus }] as const;
+
+export const Sidebar = () => {
+  const pathname = usePathname();
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
     <aside className="sidebar">
-      <button
-        onClick={() => setRoute("dashboard")}
-        className="sidebar-logo"
-        style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", width: "100%" }}
-      >
-        <span className="mark">t</span>
-        <span className="wordmark">Tether</span>
-      </button>
+      <Link href="/" className="sidebar-logo" style={{ textDecoration: "none" }}>
+        <OffloadLogo markSize={26} wordSize={22} />
+      </Link>
 
       <div className="sidebar-section-label">Workspace</div>
-      {items.map((it) => (
-        <button key={it.id} className={`nav-item ${route === it.id ? "active" : ""}`} onClick={() => setRoute(it.id)}>
+      {NAV.map((it) => (
+        <Link key={it.href} href={it.href} className={`nav-item ${isActive(it.href) ? "active" : ""}`}>
           <it.icon className="icon" />
           <span>{it.label}</span>
-          {it.badge && <span className="nav-badge">{it.badge}</span>}
-        </button>
+          {"badge" in it && it.badge && <span className="nav-badge">{it.badge}</span>}
+        </Link>
       ))}
 
       <div className="sidebar-section-label">Create</div>
-      {tools.map((it) => (
-        <button key={it.id} className={`nav-item ${route === it.id ? "active" : ""}`} onClick={() => setRoute(it.id)}>
+      {TOOLS.map((it) => (
+        <Link key={it.href} href={it.href} className={`nav-item ${isActive(it.href) ? "active" : ""}`}>
           <it.icon className="icon" />
           <span>{it.label}</span>
-        </button>
+        </Link>
       ))}
 
       <div className="sidebar-footer">
@@ -48,9 +47,9 @@ export const Sidebar = ({ route, setRoute }: { route: Route; setRoute: (r: Route
           <span className="bdot" />
           <span>Brew Lab</span>
         </div>
-        <button className="btn btn-ghost btn-sm" style={{ padding: 4, color: "var(--text-muted)" }} title="Settings">
+        <Link href="/settings" className={`btn btn-ghost btn-sm ${isActive("/settings") ? "active" : ""}`} style={{ padding: 4, color: "var(--text-muted)" }} title="Settings">
           <I.Settings />
-        </button>
+        </Link>
       </div>
     </aside>
   );

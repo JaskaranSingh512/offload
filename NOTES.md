@@ -1,12 +1,18 @@
 # NOTES — edit/overwrite freely, keep it short.
 
 ## What works
-- **Frontend is built and scaffolded** (branch `feat/frontend-tether`). Next.js 16 App Router
-  app ported 1:1 from the `UI for offload/` React prototype ("Tether"): onboarding flow +
-  5 screens (Dashboard, Calendar, Campaign Builder, Scripts, Analytics) + content-detail drawer.
-  All client-side state routing in `app/page.tsx`. Mock data in `lib/data.tsx`.
-- `./verify.sh` passes (typecheck + lint + `vitest`) and `next build` is green.
-- `npm run dev` serves at :3000; onboarding SSRs correctly.
+- **Frontend reflects the full PRD/EXECUTION_PLAN "Offload" vision** (branch `feat/frontend-tether`).
+  Rebranded Tether → **Offload** with the real logo (`components/logo.tsx`, from `offload logo.html`).
+  Brew Lab is kept intentionally as the canonical demo persona (PRD §2).
+- **Real App Router routes** (not single-page state routing): `/onboarding`, `/` (Dashboard),
+  `/calendar`, `/build`, `/scripts`, `/analytics`, `/settings`. App shell in `app/(shell)/layout.tsx`
+  hosts the sidebar + persistent overlays. UI overlay state in `lib/store.ts` (Zustand); toasts via `sonner`.
+- **Net-new PRD §5/§6 surfaces/features (frontend, mock):** onboarding OAuth Connect step + brand-asset
+  upload; **Settings** (per-channel approval policy + notification prefs); persistent **chat launcher**
+  (§6.6, previews structured changes); **format-aware** Content Detail drawer (§5.4 — video = Mark filmed,
+  no publish); **in-flight + recap** Analytics modes; platform-constraint flags.
+- `./verify.sh` passes (typecheck + lint + `vitest`) and `next build` static-prerenders all 7 routes.
+- `npm run dev` serves at :3000.
 
 ## Stack (locked)
 - Next.js 16 (App Router) + TypeScript + Tailwind v4, deployed on Vercel. Supabase backend.

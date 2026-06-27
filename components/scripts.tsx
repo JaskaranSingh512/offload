@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { I } from "@/components/icons";
 import { PageHead } from "@/components/ui";
 import { founderScripts } from "@/lib/data";
@@ -98,7 +99,11 @@ export const Scripts = () => {
               <button className="btn btn-secondary btn-sm">
                 <I.Wand size={12} /> Variations
               </button>
-              <button className="btn btn-primary btn-sm" style={{ marginLeft: "auto" }}>
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ marginLeft: "auto" }}
+                onClick={() => toast.success(`"${s.title}" marked filmed — its calendar slot is now active.`)}
+              >
                 <I.Film size={12} /> Mark filmed
               </button>
             </div>
@@ -126,7 +131,7 @@ export const Scripts = () => {
           Need a different angle?
         </h3>
         <p style={{ fontSize: 13.5, color: "var(--text-muted)", maxWidth: 480, margin: "8px auto 18px" }}>
-          Tell Tether what you want to talk about and it&apos;ll draft a new script in your voice.
+          Tell Offload what you want to talk about and it&apos;ll draft a new script in your voice.
         </p>
         <button className="btn btn-primary">
           <I.Sparkle size={13} /> Brief a new script

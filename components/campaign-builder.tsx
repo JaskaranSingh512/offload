@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { I } from "@/components/icons";
 import { PageHead } from "@/components/ui";
 import { Toggle } from "@/components/ui";
-import { channelMeta, type ChannelId, type Route } from "@/lib/data";
+import { OffloadMark } from "@/components/logo";
+import { channelMeta, type ChannelId } from "@/lib/data";
 
-export const CampaignBuilder = ({ setRoute }: { setRoute: (r: Route) => void }) => {
+export const CampaignBuilder = () => {
+  const router = useRouter();
   const [goal, setGoal] = useState("awareness");
   const [duration, setDuration] = useState("2w");
   const [frequency, setFrequency] = useState("balanced");
@@ -36,14 +39,14 @@ export const CampaignBuilder = ({ setRoute }: { setRoute: (r: Route) => void }) 
 
   const handleGenerate = () => {
     setGenerating(true);
-    setTimeout(() => setRoute("calendar"), 2400);
+    setTimeout(() => router.push("/calendar"), 2400);
   };
 
   if (generating) {
     return (
       <div className="loader-wrap" style={{ minHeight: "100%" }}>
         <div className="loader-card">
-          <div className="loader-mark">t</div>
+          <div className="loader-mark"><OffloadMark size={34} /></div>
           <h2 className="loader-title">Generating &quot;{campaignName}&quot;</h2>
           <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0 }}>
             Drafting {estPosts} posts across {activeChannels} channels…
@@ -65,9 +68,9 @@ export const CampaignBuilder = ({ setRoute }: { setRoute: (r: Route) => void }) 
       <PageHead
         eyebrow="Create"
         title='Build a <span class="em">new campaign.</span>'
-        sub="Tether will research, write, and schedule. You review and approve."
+        sub="Offload will research, write, and schedule. You review and approve."
         actions={
-          <button className="btn btn-ghost" onClick={() => setRoute("dashboard")}>
+          <button className="btn btn-ghost" onClick={() => router.push("/")}>
             <I.ArrowLeft size={14} /> Back to dashboard
           </button>
         }
@@ -163,7 +166,7 @@ export const CampaignBuilder = ({ setRoute }: { setRoute: (r: Route) => void }) 
               </button>
             </div>
             <p className="field-hint" style={{ marginTop: 10 }}>
-              Tether will distribute posts intelligently across your channels and times based on when your audience is most active.
+              Offload will distribute posts intelligently across your channels and times based on when your audience is most active.
             </p>
           </div>
         </div>

@@ -1,34 +1,143 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { I } from "@/components/icons";
+import { OffloadMark } from "@/components/logo";
 import { PageHead, Chip, BarChart, LineChart } from "@/components/ui";
-import { channelStats, formatStats, working, recommendations, channelMeta, type Route } from "@/lib/data";
+import { channelStats, formatStats, working, recommendations, channelMeta } from "@/lib/data";
 
-export const Analytics = ({ setRoute }: { setRoute: (r: Route) => void }) => {
-  // Daily impressions line chart data (14 days)
-  const dailyData = [
-    { label: "5", value: 4200 },
-    { label: "6", value: 9100 },
-    { label: "7", value: 12400 },
-    { label: "8", value: 18900 },
-    { label: "9", value: 28000 },
-    { label: "10", value: 24000 },
-    { label: "11", value: 31000 },
-    { label: "12", value: 42000 },
-    { label: "13", value: 38000 },
-    { label: "14", value: 56000 },
-    { label: "15", value: 62000 },
-    { label: "16", value: 71000 },
-    { label: "17", value: 68000 },
-    { label: "18", value: 80000 },
-  ];
+type Mode = "inflight" | "recap";
 
-  const channelBars = channelStats.map((c) => ({
-    label: channelMeta[c.channel].name,
-    value: c.signups,
-    color: channelMeta[c.channel].color,
-  }));
+// Full 14-day impressions; in-flight only knows the days elapsed so far.
+const dailyData = [
+  { label: "5", value: 4200 },
+  { label: "6", value: 9100 },
+  { label: "7", value: 12400 },
+  { label: "8", value: 18900 },
+  { label: "9", value: 28000 },
+  { label: "10", value: 24000 },
+  { label: "11", value: 31000 },
+  { label: "12", value: 42000 },
+  { label: "13", value: 38000 },
+  { label: "14", value: 56000 },
+  { label: "15", value: 62000 },
+  { label: "16", value: 71000 },
+  { label: "17", value: 68000 },
+  { label: "18", value: 80000 },
+];
 
+const channelBars = channelStats.map((c) => ({
+  label: channelMeta[c.channel].name,
+  value: c.signups,
+  color: channelMeta[c.channel].color,
+}));
+
+const ModeToggle = ({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) => (
+  <div className="seg" style={{ width: 220 }}>
+    <button className={mode === "inflight" ? "on" : ""} onClick={() => setMode("inflight")}>
+      In-flight
+    </button>
+    <button className={mode === "recap" ? "on" : ""} onClick={() => setMode("recap")}>
+      Recap
+    </button>
+  </div>
+);
+
+export const Analytics = () => {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>("recap");
+
+  if (mode === "inflight") {
+    return <InFlight router={router} mode={mode} setMode={setMode} />;
+  }
+  return <Recap router={router} mode={mode} setMode={setMode} />;
+};
+
+type ViewProps = { router: ReturnType<typeof useRouter>; mode: Mode; setMode: (m: Mode) => void };
+
+const InFlight = ({ router, mode, setMode }: ViewProps) => {
+  const live = dailyData.slice(0, 3); // day 3 of 14
+  return (
+    <div className="main-inner">
+      <PageHead
+        eyebrow="Campaign analytics"
+        title='Day 3 — <span class="em">in flight.</span>'
+        sub="The Honest Cold Brew — Spring Launch · tracking live against forecast"
+        actions={
+          <>
+            <ModeToggle mode={mode} setMode={setMode} />
+            <button className="btn btn-primary" onClick={() => router.push("/build")}>
+              <I.Sparkle size={13} /> Brief next campaign
+            </button>
+          </>
+        }
+      />
+
+      <div className="kpi-row">
+        <div className="kpi">
+          <p className="kpi-label">Impressions (so far)</p>
+          <p className="kpi-value">25.7k</p>
+          <span className="kpi-delta"><I.ArrowUp size={11} /> +12% vs forecast</span>
+        </div>
+        <div className="kpi">
+          <p className="kpi-label">Signups (so far)</p>
+          <p className="kpi-value">198</p>
+          <span className="kpi-delta"><I.ArrowUp size={11} /> +9%</span>
+        </div>
+        <div className="kpi">
+          <p className="kpi-label">Engagement rate</p>
+          <p className="kpi-value">6.1%</p>
+          <span className="kpi-delta"><I.ArrowUp size={11} /> +0.8pt</span>
+        </div>
+        <div className="kpi">
+          <p className="kpi-label">Posts published</p>
+          <p className="kpi-value">8</p>
+          <span className="kpi-delta" style={{ background: "var(--cream)", color: "var(--espresso)" }}>of 35</span>
+        </div>
+      </div>
+
+      <div className="analytics-grid">
+        <div className="card card-pad-lg">
+          <div className="card-head">
+            <h3 className="card-title">Daily impressions · so far</h3>
+            <span className="chip">vs forecast</span>
+          </div>
+          <LineChart data={live} secondaryData={live.map((d, i) => ({ ...d, value: d.value * (0.8 + i / 30) }))} height={220} />
+        </div>
+        <div className="card card-pad-lg">
+          <div className="card-head">
+            <h3 className="card-title">Signups by channel</h3>
+            <span className="chip">live</span>
+          </div>
+          <BarChart data={channelBars.map((b) => ({ ...b, value: Math.round(b.value * 0.4) }))} height={200} />
+        </div>
+      </div>
+
+      <div className="card card-pad-lg" style={{ marginTop: 20 }}>
+        <div className="card-head">
+          <h3 className="card-title">What&apos;s working so far</h3>
+          <Chip tone="teal" dot>
+            early signal
+          </Chip>
+        </div>
+        <div className="working-list">
+          {working.slice(0, 3).map((w, i) => (
+            <div key={i} className="working-item">
+              <div className="wi-dot" />
+              <div>
+                <h5>{w.title}</h5>
+                <p>{w.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Recap = ({ router, mode, setMode }: ViewProps) => {
   return (
     <div className="main-inner">
       <PageHead
@@ -37,10 +146,11 @@ export const Analytics = ({ setRoute }: { setRoute: (r: Route) => void }) => {
         sub="The Honest Cold Brew — Spring Launch · May 5 to May 18, 2025"
         actions={
           <>
+            <ModeToggle mode={mode} setMode={setMode} />
             <button className="btn btn-secondary">
               <I.Copy size={13} /> Export PDF
             </button>
-            <button className="btn btn-primary" onClick={() => setRoute("builder")}>
+            <button className="btn btn-primary" onClick={() => router.push("/build")}>
               <I.Sparkle size={13} /> Brief next campaign
             </button>
           </>
@@ -225,9 +335,9 @@ export const Analytics = ({ setRoute }: { setRoute: (r: Route) => void }) => {
         <div className="card card-pad-lg">
           <div className="card-head">
             <h3 className="card-title">What&apos;s working</h3>
-            <span className="chip chip-teal" >
-              <span className="chip-dot" />4 themes
-            </span>
+            <Chip tone="teal" dot>
+              4 themes
+            </Chip>
           </div>
           <div className="working-list">
             {working.map((w, i) => (
@@ -246,9 +356,9 @@ export const Analytics = ({ setRoute }: { setRoute: (r: Route) => void }) => {
       {/* AI Recommendations — the closer */}
       <div className="rec-card" style={{ marginTop: 24 }}>
         <div className="rc-head">
-          <div className="rc-tether-mark">t</div>
+          <div className="rc-offload-mark"><OffloadMark size={18} /></div>
           <div>
-            <div className="rc-title">Tether recommends</div>
+            <div className="rc-title">Offload recommends</div>
             <div style={{ fontFamily: "var(--font-serif)", fontSize: 28, color: "var(--cream)", letterSpacing: "-0.01em", marginTop: 2 }}>
               Your next move, ranked.
             </div>
@@ -256,7 +366,7 @@ export const Analytics = ({ setRoute }: { setRoute: (r: Route) => void }) => {
           <button
             className="btn btn-on-dark"
             style={{ marginLeft: "auto", background: "var(--teal)", color: "white", borderColor: "var(--teal)" }}
-            onClick={() => setRoute("builder")}
+            onClick={() => router.push("/build")}
           >
             <I.Sparkle size={13} /> Brief next campaign
           </button>

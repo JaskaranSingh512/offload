@@ -1,10 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { I } from "@/components/icons";
 import { PageHead, ChannelIcon, LineChart } from "@/components/ui";
-import { posts, TODAY_DAY, channelMeta, type Post, type Route, type ChannelId } from "@/lib/data";
+import { useUI } from "@/lib/store";
+import { posts, TODAY_DAY, channelMeta, type ChannelId } from "@/lib/data";
 
-export const Dashboard = ({ setRoute, openPost }: { setRoute: (r: Route) => void; openPost: (p: Post) => void }) => {
+export const Dashboard = () => {
+  const router = useRouter();
+  const openPost = useUI((s) => s.openPost);
   // "Next up" posts (today + tomorrow, upcoming only)
   const nextUp = posts.filter((p) => p.day === TODAY_DAY || p.day === TODAY_DAY + 1).slice(0, 5);
 
@@ -34,10 +38,10 @@ export const Dashboard = ({ setRoute, openPost }: { setRoute: (r: Route) => void
         sub="Day 3 of your launch campaign · 3 posts scheduled today"
         actions={
           <>
-            <button className="btn btn-secondary" onClick={() => setRoute("calendar")}>
+            <button className="btn btn-secondary" onClick={() => router.push("/calendar")}>
               <I.Calendar /> View calendar
             </button>
-            <button className="btn btn-primary" onClick={() => setRoute("builder")}>
+            <button className="btn btn-primary" onClick={() => router.push("/build")}>
               <I.Plus /> New campaign
             </button>
           </>
@@ -115,10 +119,10 @@ export const Dashboard = ({ setRoute, openPost }: { setRoute: (r: Route) => void
             </div>
 
             <div className="ac-actions">
-              <button className="btn btn-on-dark" onClick={() => setRoute("calendar")}>
+              <button className="btn btn-on-dark" onClick={() => router.push("/calendar")}>
                 Open campaign →
               </button>
-              <button className="btn btn-on-dark ghost" onClick={() => setRoute("analytics")}>
+              <button className="btn btn-on-dark ghost" onClick={() => router.push("/analytics")}>
                 View live analytics
               </button>
             </div>
@@ -129,7 +133,7 @@ export const Dashboard = ({ setRoute, openPost }: { setRoute: (r: Route) => void
         <div className="card">
           <div className="card-head">
             <h3 className="card-title">Next up</h3>
-            <button className="card-link" onClick={() => setRoute("calendar")}>
+            <button className="card-link" onClick={() => router.push("/calendar")}>
               See all <I.ChevronRight size={12} />
             </button>
           </div>
@@ -163,7 +167,7 @@ export const Dashboard = ({ setRoute, openPost }: { setRoute: (r: Route) => void
         <div className="card">
           <div className="card-head">
             <h3 className="card-title">By channel · this campaign</h3>
-            <button className="card-link" onClick={() => setRoute("analytics")}>
+            <button className="card-link" onClick={() => router.push("/analytics")}>
               Deep dive <I.ChevronRight size={12} />
             </button>
           </div>
@@ -187,7 +191,7 @@ export const Dashboard = ({ setRoute, openPost }: { setRoute: (r: Route) => void
         </div>
       </div>
 
-      {/* Tether suggests card */}
+      {/* Offload suggests card */}
       <div className="card" style={{ marginTop: 20, padding: 24, display: "flex", gap: 24, alignItems: "center" }}>
         <div
           style={{
@@ -204,7 +208,7 @@ export const Dashboard = ({ setRoute, openPost }: { setRoute: (r: Route) => void
         </div>
         <div style={{ flex: 1 }}>
           <div className="eyebrow" style={{ color: "var(--teal-deep)" }}>
-            Tether suggests
+            Offload suggests
           </div>
           <p
             style={{

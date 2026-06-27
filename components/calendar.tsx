@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { I } from "@/components/icons";
 import { PageHead, ChannelIcon } from "@/components/ui";
+import { useUI } from "@/lib/store";
 import { posts, dateLabels, channelMeta, TODAY_DAY, type Post, type ChannelId } from "@/lib/data";
 
-export const ContentCalendar = ({ openPost }: { openPost: (p: Post) => void }) => {
+export const ContentCalendar = () => {
+  const openPost = useUI((s) => s.openPost);
   const [filter, setFilter] = useState<"all" | ChannelId>("all");
 
   const filtered = filter === "all" ? posts : posts.filter((p) => p.channel === filter);
@@ -71,13 +74,16 @@ export const ContentCalendar = ({ openPost }: { openPost: (p: Post) => void }) =
         sub="May 5 – May 18 · 35 posts across 4 channels · all drafted and scheduled"
         actions={
           <>
-            <button className="btn btn-secondary">
+            <button className="btn btn-secondary" onClick={() => toast("Filter posts by channel, format, or status.")}>
               <I.Filter size={13} /> Filters
             </button>
-            <button className="btn btn-secondary">
+            <button className="btn btn-secondary" onClick={() => toast("Add a one-off post to the campaign.")}>
               <I.Plus size={13} /> Add post
             </button>
-            <button className="btn btn-primary">
+            <button
+              className="btn btn-primary"
+              onClick={() => toast.success(`Approved all pending posts${filter === "all" ? "" : ` on ${channelMeta[filter].name}`}.`)}
+            >
               <I.Send size={13} /> Approve all
             </button>
           </>
