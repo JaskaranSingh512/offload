@@ -61,13 +61,27 @@
 
 **Audit findings (read-only, via Supabase MCP — the MCP works despite `claude mcp list` showing
 "Pending approval"):** live `public` schema = exactly the partner's 4 tables, all RLS-disabled (advisor
-flagged critical, aligns with our intent to manage RLS ourselves). `auth.*` is stock Supabase Auth
-(users=0). REST/JWT keys in `.env.local` still 401 (legacy JWT disabled) — use the **MCP** to read the DB,
-not the keys. `.env.local` still has VITE_* names; needs NEXT_PUBLIC_* + GitHub OAuth wired in Supabase
-dashboard (HUMAN PRECONDITION).
+flagged critical, aligns with our intent to manage RLS ourselves). `auth.*` is stock Supabase Auth.
+**Keys now WORK** (the earlier 401 is stale): publishable `sb_publishable_-23bRn…` and the legacy
+`service_role` JWT both return HTTP 200. `.env.local` now carries the Next.js names
+(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` = publishable, `SUPABASE_SECRET_KEY` =
+service_role). Partner confirmed GitHub OAuth is set up in the Supabase dashboard.
+
+## Build position — Phases 0→2 GREEN, Phase 3 next (2026-06-27)
+- Scaffold + mock frontend already live on this branch (`docs/phase-0-contract`): Next 16 App Router,
+  7 routes, `lib/data.tsx` mock layer, `@anthropic-ai/sdk ^0.52.0` + `@supabase/supabase-js` declared.
+- **Phase 0 DONE** (contract, amended for auth). **Phase 1 DONE** (`npm install`; sdk + key + MCP gate
+  green — commit `629e385`). **Phase 2 DONE** (`./verify.sh` exits 0 — typecheck+lint+3 tests; `next build`
+  prerenders all 7 routes).
+- **Phase 3 (Schema + types + seed) is next and now UNBLOCKED.** `0001_init` will: drop the 4 partner
+  tables → create the 13 CONTRACT tables → `handle_new_user` trigger (accounts.id = auth.uid) → RLS ON
+  with `account_id = auth.uid()` policies → seed (demo account + ≥20 posts, every table ≥1 row) →
+  regenerate `src/types/database.types.ts`. **Open Phase-3 design point:** the seed demo account needs a
+  demo `auth.users` row so its rows are reachable under RLS — confirm approach before applying.
 
 ## Gotchas
 - 4 channels only (Reddit, TikTok, Instagram, X). Video is founder-posted, never auto-published.
 - Live demo runs from the deployed Vercel URL — engineer around serverless cold-start/timeout with a
   cached golden-payload fallback.
-- Nothing built yet. Repo has docs only; app not scaffolded.
+- Frontend is currently all **mock** (`lib/data.tsx`); live Supabase wiring (`lib/api.ts` + clients) is
+  Phase 3/4 work. No live `lib/api.ts` or Supabase client exists yet.
