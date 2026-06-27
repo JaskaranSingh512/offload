@@ -31,14 +31,19 @@ async function getCanvaToken(userId) {
   if (Date.now() < expiresAt - 60_000) return conn.access_token;
 
   // Refresh the token
+  const credentials = Buffer.from(
+    `${process.env.CANVA_CLIENT_ID}:${process.env.CANVA_CLIENT_SECRET}`
+  ).toString("base64");
+
   const resp = await fetch("https://api.canva.com/rest/v1/oauth/token", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Authorization": `Basic ${credentials}`,
+    },
     body: new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: conn.refresh_token,
-      client_id: process.env.CANVA_CLIENT_ID,
-      client_secret: process.env.CANVA_CLIENT_SECRET,
     }),
   });
   if (!resp.ok) throw new Error(`Canva token refresh failed: ${await resp.text()}`);

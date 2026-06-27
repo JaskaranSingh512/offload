@@ -29,13 +29,18 @@ export default async function handler(req, res) {
   const state = crypto.randomUUID();
 
   // Store state + verifier temporarily so the callback can retrieve it
-  await supabase.from("oauth_states").upsert({
+  const { error: dbError } = await supabase.from("oauth_states").insert({
     state,
     user_id,
     code_verifier: codeVerifier,
     provider: "canva",
     created_at: new Date().toISOString(),
   });
+
+  if (dbError) {
+    console.error("Failed to store oauth state:", dbError);
+    return res.status(500).json({ error: "Failed to initiate OAuth", detail: dbError.message });
+  }
 
   const params = new URLSearchParams({
     client_id: process.env.CANVA_CLIENT_ID,

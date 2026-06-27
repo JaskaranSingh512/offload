@@ -29,16 +29,21 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid or expired state" });
   }
 
-  // Exchange code for tokens
+  // Exchange code for tokens — Canva requires Basic Auth (not body params)
+  const credentials = Buffer.from(
+    `${process.env.CANVA_CLIENT_ID}:${process.env.CANVA_CLIENT_SECRET}`
+  ).toString("base64");
+
   const tokenResp = await fetch("https://api.canva.com/rest/v1/oauth/token", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Authorization": `Basic ${credentials}`,
+    },
     body: new URLSearchParams({
       grant_type: "authorization_code",
       code,
       redirect_uri: process.env.CANVA_REDIRECT_URI,
-      client_id: process.env.CANVA_CLIENT_ID,
-      client_secret: process.env.CANVA_CLIENT_SECRET,
       code_verifier: oauthState.code_verifier,
     }),
   });
