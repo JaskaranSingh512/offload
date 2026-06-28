@@ -59,7 +59,7 @@ export default function LoginPage() {
     setBusy(true);
     const { error } = await client.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/login` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` },
     });
     if (error) {
       toast.error(error.message);
