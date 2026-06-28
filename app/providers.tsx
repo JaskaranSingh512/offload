@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
+import { initAnalytics } from "@/lib/analytics";
 
 // Client provider shell: React Query for the live data layer (lib/queries.ts) + the
-// global Sonner toaster. PostHog mounts here too once analytics events land (Phase 7).
+// global Sonner toaster. PostHog mounts here too (guarded — no-op without NEXT_PUBLIC_POSTHOG_KEY).
 export function Providers({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({

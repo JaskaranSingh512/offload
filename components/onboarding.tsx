@@ -9,6 +9,8 @@ import { OffloadLogo, OffloadMark } from "@/components/logo";
 import { ONBOARDED_KEY } from "@/components/first-run-gate";
 import { createClient } from "@/lib/supabase/client";
 import { api } from "@/lib/api";
+import { useConnectAccount } from "@/lib/queries";
+import { track } from "@/lib/analytics";
 import type { ChannelId } from "@/lib/data";
 
 // UI voice id → DB voice_t enum.
@@ -95,6 +97,10 @@ export const Onboarding = () => {
 
   const complete = () => {
     void persistBrand();
+    track("onboarding_completed", {
+      goal: data.goal,
+      channels: Object.entries(data.channels).filter(([, on]) => on).map(([id]) => id),
+    });
     try {
       localStorage.setItem(ONBOARDED_KEY, "1");
     } catch {
@@ -570,6 +576,17 @@ const ChannelsStep = ({ data, setData, analysis, onNext, onBack }: StepProps & {
 
 const ConnectStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => void }) => {
   const [connected, setConnected] = useState<Record<ChannelId, boolean>>({ reddit: false, tiktok: false, instagram: false, x: false });
+  const connect = useConnectAccount();
+  const connectChannel = (id: ChannelId) => {
+    // Optimistic flip; the mock-OAuth write upserts social_accounts.status='mock' (no-op in mock mode).
+    setConnected((c) => ({ ...c, [id]: true }));
+    connect.mutate(id, {
+      onError: () => {
+        setConnected((c) => ({ ...c, [id]: false })); // revert so the UI matches the DB on failure
+        toast.error(`Couldn't connect ${CHANNEL_LABEL[id]} — try again.`);
+      },
+    });
+  };
   const channels: { id: ChannelId; name: string; handle: string; color: string; Icon: typeof I.Reddit }[] = [
     { id: "reddit", name: "Reddit", handle: "u/brewlab_andre", color: "#FF4500", Icon: I.Reddit },
     { id: "tiktok", name: "TikTok", handle: "@brewlab", color: "#111111", Icon: I.TikTok },
@@ -604,7 +621,7 @@ const ConnectStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => voi
                 <I.Check size={12} /> Connected
               </span>
             ) : (
-              <button className="btn btn-secondary btn-sm" onClick={() => setConnected({ ...connected, [c.id]: true })}>
+              <button className="btn btn-secondary btn-sm" onClick={() => connectChannel(c.id)}>
                 Connect
               </button>
             )}
@@ -666,9 +683,10 @@ const LoadingStep = ({ onComplete }: { onComplete: () => void }) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     const start = Date.now();
-    const finish = () => {
+    const finish = (meta?: Record<string, unknown>) => {
       if (done) return;
       done = true;
+      track("campaign_generated", meta);
       setProgress(100);
       setTaskIdx(tasks.length - 1);
       // Keep the loader on screen at least ~1.6s even if generation returns instantly (mock/golden).
@@ -696,7 +714,14 @@ const LoadingStep = ({ onComplete }: { onComplete: () => void }) => {
               setProgress(Math.min(95, 8 + ticks * 3));
               setTaskIdx(Math.min(tasks.length - 1, Math.floor(ticks / 4)));
             } else if (f.includes("event: done") || f.includes("event: error")) {
-              return finish();
+              const line = f.split("\n").find((l) => l.startsWith("data:"));
+              let payload: Record<string, unknown> | undefined;
+              try {
+                payload = line ? JSON.parse(line.slice(5).trim()) : undefined;
+              } catch {
+                /* ignore malformed frame */
+              }
+              return finish(payload);
             }
           }
         }

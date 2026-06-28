@@ -91,8 +91,11 @@ export const ContentCalendar = () => {
               className="btn btn-primary"
               onClick={() =>
                 approveAll.mutate(filter, {
-                  onSuccess: () =>
-                    toast.success(`Approved all pending posts${filter === "all" ? "" : ` on ${channelMeta[filter].name}`}.`),
+                  onSuccess: (res) => {
+                    const where = filter === "all" ? "" : ` on ${channelMeta[filter].name}`;
+                    if (res?.published) toast.success(`Approved & published ${res.published} post${res.published === 1 ? "" : "s"}${where} ✓`);
+                    else toast.success(`Approved all pending posts${where}.`);
+                  },
                   onError: () => toast.error("Couldn't approve posts — try again."),
                 })
               }

@@ -112,8 +112,28 @@ service_role). Partner confirmed GitHub OAuth is set up in the Supabase dashboar
   lint + **21 tests**), `next build` prerenders all routes + 3 dynamic `/api/*`, RPC + 401/400 auth-gating
   smoke-tested. **Live model path (streamed generate + chat-edit patch) needs a logged-in session to
   exercise end-to-end** — verify after GitHub/Google login.
-- **Next: Phase 6 — OAuth/publish mock + onboarding Connect** (`social_accounts.status='mock'`, approve→
-  publish status-flip + toast). Then Phase 7 integrate/deploy, Phase 8 Playwright e2e.
+- **Phase 6 (OAuth/publish mock + onboarding Connect) DONE ✅** and **Phase 7 (integration + deploy prep)
+  DONE ✅ — branch `feat/phase-6-7-publish-deploy`, PR #11.** Two commits (one per phase). Built natively
+  in the `lib/api.ts` seam (browser client, RLS own-row writes), NOT the partner's root `api/*.js`:
+  `connectAccount`/`disconnectAccount`/`getSocialAccounts` (Connect → `social_accounts.status='mock'`,
+  `write_scope` = the publishable set reddit/x/instagram per CONTRACT §1a), `publishPost` (mock publisher,
+  full selector `status='scheduled' AND approval_state='approved' AND channel IN reddit/x/instagram` →
+  `status='published'` + synthetic `external_post_id`; video never publishes), `publishApproved` (approve-all
+  companion, publishes each candidate via `publishPost` for unique ids), `markFilmedByPost` (drawer mark-filmed
+  by `post_id`). Wired: onboarding Connect (optimistic, reverts on error), Settings real status + Disconnect,
+  drawer Approve → "Published to {Channel} ✓" + Mark-filmed mutates, calendar Approve-all count toast.
+  Phase 7: **removed 3 redundant root funcs** (`connect-social`/`mock-post`/`post-social`; Canva funcs kept),
+  guarded PostHog (`lib/analytics.ts`, no-op without `NEXT_PUBLIC_POSTHOG_KEY`) + 3 events
+  (`onboarding_completed`/`campaign_generated`/`post_approved`), `.env.example` documents
+  `USE_MOCK`/`DEMO_ACCOUNT_ID`/`POSTHOG_*`. An **adversarial multi-agent review** caught + fixed 4 real issues
+  (write_scope/PUBLISHABLE reconciliation, missing `status='scheduled'` guard, bulk `external_post_id`
+  collision, optimistic-connect rollback). Gate: `./verify.sh` 0 (typecheck+lint+21 tests), `next build`
+  prerenders. **Vercel preview READY** (PR #11); prod `/api/generate` → 401 (route deployed, self-gates).
+  **Still to verify in-browser after GitHub login:** live publish/Connect writes + the forced-failure golden
+  fallback (the `/api/*` 401 gate + preview deployment-protection block unauth curls). **Deploy = live**
+  (`NEXT_PUBLIC_USE_MOCK=false`) needs the GitHub OAuth provider configured in Supabase.
+- **Next: Phase 8 — Playwright e2e** against the deployed URL (9-step demo path, 3× pass) + the standing
+  forced-failure golden-fallback curl.
 
 ## ✅ RESOLVED — Canva un-deferred (2026-06-27)
 The partner added Canva to the **shared** DB mid-session (out-of-band: `canva` in `provider_t` + an
