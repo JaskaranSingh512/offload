@@ -61,11 +61,26 @@ export const Onboarding = () => {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<BrandData>(INITIAL);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [authed, setAuthed] = useState<boolean | null>(null);
   const steps = ["welcome", "brand", "audience", "channels", "connect", "loading"];
   const progress = ((step + 1) / steps.length) * 100;
 
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
   const prev = () => setStep((s) => Math.max(s - 1, 0));
+
+  // Check auth once on mount so the Welcome step knows whether to gate on /login
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => setAuthed(!!user));
+  }, []);
+
+  const handleGetStarted = () => {
+    if (!authed) {
+      router.push("/login?next=/onboarding");
+    } else {
+      next();
+    }
+  };
 
   const persistBrand = async () => {
     try {
@@ -124,7 +139,7 @@ export const Onboarding = () => {
       </div>
 
       <div className="onb-body">
-        {step === 0 && <Welcome onNext={next} />}
+        {step === 0 && <Welcome onNext={handleGetStarted} />}
         {step === 1 && (
           <BrandStep
             data={data}
