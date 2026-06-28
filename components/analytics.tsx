@@ -12,20 +12,20 @@ type Mode = "inflight" | "recap";
 
 // Full 14-day impressions; in-flight only knows the days elapsed so far.
 const dailyData = [
-  { label: "5", value: 4200 },
-  { label: "6", value: 9100 },
-  { label: "7", value: 12400 },
-  { label: "8", value: 18900 },
-  { label: "9", value: 28000 },
-  { label: "10", value: 24000 },
-  { label: "11", value: 31000 },
-  { label: "12", value: 42000 },
-  { label: "13", value: 38000 },
-  { label: "14", value: 56000 },
-  { label: "15", value: 62000 },
-  { label: "16", value: 71000 },
-  { label: "17", value: 68000 },
-  { label: "18", value: 80000 },
+  { label: "22", value: 4200 },
+  { label: "23", value: 9100 },
+  { label: "24", value: 12400 },
+  { label: "25", value: 18900 },
+  { label: "26", value: 28000 },
+  { label: "27", value: 24000 },
+  { label: "28", value: 31000 },
+  { label: "29", value: 42000 },
+  { label: "30", value: 38000 },
+  { label: "1", value: 56000 },
+  { label: "2", value: 62000 },
+  { label: "3", value: 71000 },
+  { label: "4", value: 68000 },
+  { label: "5", value: 80000 },
 ];
 
 const ModeToggle = ({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) => (
@@ -60,12 +60,12 @@ const InFlight = ({ router, mode, setMode }: ViewProps) => {
     value: c.signups,
     color: channelMeta[c.channel].color,
   }));
-  const live = dailyData.slice(0, 3); // day 3 of 14
+  const live = dailyData.slice(0, 6); // day 6 of 14
   return (
     <div className="main-inner">
       <PageHead
         eyebrow="Campaign analytics"
-        title='Day 3 — <span class="em">in flight.</span>'
+        title='Day 6 — <span class="em">in flight.</span>'
         sub="The Honest Cold Brew — Spring Launch · tracking live against forecast"
         actions={
           <>
@@ -80,12 +80,12 @@ const InFlight = ({ router, mode, setMode }: ViewProps) => {
       <div className="kpi-row">
         <div className="kpi">
           <p className="kpi-label">Impressions (so far)</p>
-          <p className="kpi-value">25.7k</p>
+          <p className="kpi-value">96.6k</p>
           <span className="kpi-delta"><I.ArrowUp size={11} /> +12% vs forecast</span>
         </div>
         <div className="kpi">
           <p className="kpi-label">Signups (so far)</p>
-          <p className="kpi-value">198</p>
+          <p className="kpi-value">412</p>
           <span className="kpi-delta"><I.ArrowUp size={11} /> +9%</span>
         </div>
         <div className="kpi">
@@ -95,7 +95,7 @@ const InFlight = ({ router, mode, setMode }: ViewProps) => {
         </div>
         <div className="kpi">
           <p className="kpi-label">Posts published</p>
-          <p className="kpi-value">8</p>
+          <p className="kpi-value">16</p>
           <span className="kpi-delta" style={{ background: "var(--cream)", color: "var(--espresso)" }}>of 35</span>
         </div>
       </div>
@@ -156,7 +156,7 @@ const Recap = ({ router, mode, setMode }: ViewProps) => {
       <PageHead
         eyebrow="Campaign recap"
         title='2 weeks <span class="em">in review.</span>'
-        sub="The Honest Cold Brew — Spring Launch · May 5 to May 18, 2025"
+        sub="The Honest Cold Brew — Spring Launch · June 22 to July 5, 2026"
         actions={
           <>
             <ModeToggle mode={mode} setMode={setMode} />
@@ -246,7 +246,7 @@ const Recap = ({ router, mode, setMode }: ViewProps) => {
               <div className="eyebrow" style={{ marginBottom: 4 }}>
                 Peak day
               </div>
-              <div style={{ fontSize: 14, color: "var(--espresso)", fontWeight: 500 }}>May 18 · 80,400 imp</div>
+              <div style={{ fontSize: 14, color: "var(--espresso)", fontWeight: 500 }}>Jul 5 · 80,400 imp</div>
             </div>
             <div>
               <div className="eyebrow" style={{ marginBottom: 4 }}>
