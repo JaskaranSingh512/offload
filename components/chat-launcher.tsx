@@ -29,7 +29,7 @@ function respondTo(input: string): Message {
     return {
       role: "offload",
       text: "I can add 3 Reddit posts to week 2, spaced across Tue/Thu/Sat mornings.",
-      change: { summary: "Add 3 Reddit posts to week 2", detail: "Drafts 3 long-form posts in your voice and places them at 8:30am on May 13, 15, 17." },
+      change: { summary: "Add 3 Reddit posts to week 2", detail: "Drafts 3 long-form posts in your voice and places them at 8:30am on Jun 30, Jul 2, and Jul 4." },
     };
   }
   if (q.includes("shift") || q.includes("later") || q.includes("reschedul")) {

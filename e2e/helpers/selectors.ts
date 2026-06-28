@@ -82,8 +82,8 @@ export const dashboard = {
 
 // ===== Content Calendar (components/calendar.tsx) =====
 export const calendar = {
-  week1Label: "Week 1 · May 5 – May 11",
-  week2Label: "Week 2 · May 12 – May 18",
+  week1Label: "Week 1 · June 22 – June 28",
+  week2Label: "Week 2 · June 29 – July 5",
   approveAllBtn: "Approve all",
   allChannelsBtn: "All channels",
 

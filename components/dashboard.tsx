@@ -23,23 +23,23 @@ export const Dashboard = () => {
   }, {});
   const maxChannel = Math.max(1, ...Object.values(channelCounts));
 
-  // Mini 7-day line chart (impressions trend simulated)
+  // Mini 7-day line chart (impressions trend simulated) — last 7 days ending today (Sat Jun 27)
   const trendData = [
-    { label: "M5", value: 12 },
-    { label: "T6", value: 18 },
-    { label: "W7", value: 26 },
-    { label: "T8", value: 22 },
-    { label: "F9", value: 34 },
-    { label: "S10", value: 30 },
-    { label: "S11", value: 41 },
+    { label: "S21", value: 12 },
+    { label: "M22", value: 18 },
+    { label: "T23", value: 26 },
+    { label: "W24", value: 22 },
+    { label: "T25", value: 34 },
+    { label: "F26", value: 30 },
+    { label: "S27", value: 41 },
   ];
 
   return (
     <div className="main-inner">
       <PageHead
         eyebrow="Good morning"
-        title='Wednesday, <span class="em">May 7</span>'
-        sub="Day 3 of your launch campaign · 3 posts scheduled today"
+        title='Saturday, <span class="em">June 27</span>'
+        sub="Day 6 of your launch campaign · 2 posts scheduled today"
         actions={
           <>
             <button className="btn btn-secondary" onClick={() => router.push("/calendar")}>
@@ -89,21 +89,21 @@ export const Dashboard = () => {
         <div className="card active-campaign">
           <div className="ac-bg" />
           <div className="ac-inner">
-            <div className="ac-eyebrow">Active campaign · day 3 of 14</div>
+            <div className="ac-eyebrow">Active campaign · day 6 of 14</div>
             <h2 className="ac-name">The Honest Cold Brew — Spring Launch</h2>
-            <p className="ac-dates">May 5 – May 18, 2025 · Across Reddit, TikTok, Instagram, X</p>
+            <p className="ac-dates">June 22 – July 5, 2026 · Across Reddit, TikTok, Instagram, X</p>
 
             <div className="ac-stats">
               <div className="ac-stat">
                 <p className="label">Posted</p>
                 <p className="value">
-                  8 <span style={{ fontSize: 14, color: "rgba(245,239,230,0.5)" }}>/ 35</span>
+                  16 <span style={{ fontSize: 14, color: "rgba(245,239,230,0.5)" }}>/ 35</span>
                 </p>
               </div>
               <div className="ac-stat">
                 <p className="label">Next post</p>
                 <p className="value" style={{ fontSize: 22 }}>
-                  9:00 AM
+                  11:00 AM
                 </p>
               </div>
               <div className="ac-stat">
@@ -115,11 +115,11 @@ export const Dashboard = () => {
             </div>
 
             <div className="ac-progress">
-              <div style={{ width: "21%" }} />
+              <div style={{ width: "43%" }} />
             </div>
             <div className="ac-progress-meta">
-              <span>21% complete</span>
-              <span>11 days remaining</span>
+              <span>43% complete</span>
+              <span>8 days remaining</span>
             </div>
 
             <div className="ac-actions">

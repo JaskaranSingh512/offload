@@ -78,7 +78,7 @@ export const ContentCalendar = () => {
       <PageHead
         eyebrow="Content Calendar"
         title='The Honest Cold Brew <span class="em">— Spring Launch</span>'
-        sub="May 5 – May 18 · 35 posts across 4 channels · all drafted and scheduled"
+        sub="June 22 – July 5 · 35 posts across 4 channels · all drafted and scheduled"
         actions={
           <>
             <button className="btn btn-secondary" onClick={() => toast("Filter posts by channel, format, or status.")}>
@@ -129,16 +129,16 @@ export const ContentCalendar = () => {
 
       {/* Week 1 */}
       <div className="cal-week-label">
-        <span>Week 1 · May 5 – May 11</span>
+        <span>Week 1 · June 22 – June 28</span>
         <span style={{ color: "var(--teal-deep)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-          <I.Check size={12} /> 8 posts published · 10 upcoming
+          <I.Check size={12} /> 16 posts published · 2 upcoming
         </span>
       </div>
       {renderWeek(0)}
 
       {/* Week 2 */}
       <div className="cal-week-label">
-        <span>Week 2 · May 12 – May 18</span>
+        <span>Week 2 · June 29 – July 5</span>
         <span style={{ color: "var(--text-muted)" }}>17 posts scheduled</span>
       </div>
       {renderWeek(1)}

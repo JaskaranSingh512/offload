@@ -53,7 +53,7 @@ test("9-step demo path renders and is interactive (mock)", async ({ page }) => {
   // ---- Step 4 · Calendar ----
   await test.step("4 · calendar", async () => {
     await page.goto("/calendar");
-    await expect(page.getByText("Week 1 · May 5 – May 11")).toBeVisible();
+    await expect(page.getByText("Week 1 · June 22 – June 28")).toBeVisible();
     await expect(page.locator(".cal-post").first()).toBeVisible();
     expect(await page.locator(".cal-post").count()).toBeGreaterThan(0);
   });

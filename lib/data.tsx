@@ -152,24 +152,24 @@ export const posts: Post[] = [
 ];
 
 export const dateLabels: DateLabel[] = [
-  { num: 5, dow: "MON", month: "MAY" },
-  { num: 6, dow: "TUE", month: "MAY" },
-  { num: 7, dow: "WED", month: "MAY" },
-  { num: 8, dow: "THU", month: "MAY" },
-  { num: 9, dow: "FRI", month: "MAY" },
-  { num: 10, dow: "SAT", month: "MAY" },
-  { num: 11, dow: "SUN", month: "MAY" },
-  { num: 12, dow: "MON", month: "MAY" },
-  { num: 13, dow: "TUE", month: "MAY" },
-  { num: 14, dow: "WED", month: "MAY" },
-  { num: 15, dow: "THU", month: "MAY" },
-  { num: 16, dow: "FRI", month: "MAY" },
-  { num: 17, dow: "SAT", month: "MAY" },
-  { num: 18, dow: "SUN", month: "MAY" },
+  { num: 22, dow: "MON", month: "JUN" },
+  { num: 23, dow: "TUE", month: "JUN" },
+  { num: 24, dow: "WED", month: "JUN" },
+  { num: 25, dow: "THU", month: "JUN" },
+  { num: 26, dow: "FRI", month: "JUN" },
+  { num: 27, dow: "SAT", month: "JUN" },
+  { num: 28, dow: "SUN", month: "JUN" },
+  { num: 29, dow: "MON", month: "JUN" },
+  { num: 30, dow: "TUE", month: "JUN" },
+  { num: 1, dow: "WED", month: "JUL" },
+  { num: 2, dow: "THU", month: "JUL" },
+  { num: 3, dow: "FRI", month: "JUL" },
+  { num: 4, dow: "SAT", month: "JUL" },
+  { num: 5, dow: "SUN", month: "JUL" },
 ];
 
-// Today is day 2 (Wed May 7) for the dashboard's "active campaign" state
-export const TODAY_DAY = 2;
+// Today is day 5 (Sat Jun 27) for the dashboard's "active campaign" state
+export const TODAY_DAY = 5;
 
 // Reddit post content (long form)
 export const redditBody = `I run a 4-person cold brew operation called Brew Lab. Last spring I got tired of paying $5.99 for a 10oz bottle of "premium" cold brew that, when I checked the back of the label, was 80% water and 20% concentrate that had probably been sitting on a pallet for six months.
@@ -207,7 +207,7 @@ export const carouselSets: Record<string, CarouselSlide[]> = {
     { eyebrow: "2022", text: "Quit my agency job.", tone: "cream" },
     { eyebrow: "2023", text: "Bought a used 50L tank off Craigslist.", tone: "cream" },
     { eyebrow: "2024", text: "Sold 200 bottles to friends.", tone: "cream" },
-    { eyebrow: "2025", text: "Now: 4 people, 12,000 bottles a month.", tone: "teal" },
+    { eyebrow: "2026", text: "Now: 4 people, 12,000 bottles a month.", tone: "teal" },
     { eyebrow: "Why", text: "We thought coffee deserved more honesty.", tone: "espresso" },
     { eyebrow: "Try us", text: "brewlab.co — link in bio.", tone: "cream" },
   ],
