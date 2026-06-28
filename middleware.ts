@@ -60,8 +60,9 @@ export async function middleware(request: NextRequest) {
 
   if (!user && !isPublic && !isApi) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/login";
-    redirectUrl.searchParams.set("next", pathname);
+    // Root → landing page; everything else → login
+    redirectUrl.pathname = pathname === "/" ? "/waitlist" : "/login";
+    if (pathname !== "/") redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
