@@ -61,31 +61,25 @@ const canvaH = (token) => ({ Authorization: `Bearer ${token}`, "Content-Type": "
 // Create a design from the brand template with autofilled heading + body
 async function autofillSlide(token, slide) {
   // Step 1: kick off autofill job
-  const resp = await fetch(
-    `https://api.canva.com/rest/v1/brand-templates/${BRAND_TEMPLATE_ID}/autofills`,
-    {
-      method: "POST", headers: canvaH(token),
-      body: JSON.stringify({
-        title: slide.heading.slice(0, 50),
-        data: [
-          { name: "heading", type: "text", text: slide.heading },
-          { name: "body",    type: "text", text: slide.body },
-        ],
-      }),
-    }
-  );
+  const resp = await fetch("https://api.canva.com/rest/v1/autofills", {
+    method: "POST", headers: canvaH(token),
+    body: JSON.stringify({
+      brand_template_id: BRAND_TEMPLATE_ID,
+      data: {
+        heading: { type: "text", text: slide.heading },
+        body:    { type: "text", text: slide.body },
+      },
+    }),
+  });
   const text = await resp.text();
   if (!resp.ok) throw new Error(`autofill (${resp.status}): ${text}`);
   const { job } = JSON.parse(text);
 
-  // Step 2: poll until the autofill design is ready
+  // Step 2: poll GET /v1/autofills/{jobId} until ready
   let designId = null;
   for (let i = 0; i < 15; i++) {
     await new Promise((r) => setTimeout(r, 1500));
-    const poll = await fetch(
-      `https://api.canva.com/rest/v1/brand-templates/${BRAND_TEMPLATE_ID}/autofills/${job.id}`,
-      { headers: canvaH(token) }
-    );
+    const poll     = await fetch(`https://api.canva.com/rest/v1/autofills/${job.id}`, { headers: canvaH(token) });
     const { job: j } = await poll.json();
     if (j.status === "success") { designId = j.result?.design?.id; break; }
     if (j.status === "failed")  throw new Error("Autofill job failed");
