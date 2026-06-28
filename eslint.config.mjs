@@ -8,6 +8,7 @@ const eslintConfig = [
       ".next/**",
       "out/**",
       "api/**",
+      "e2e/**",
       "UI for offload/**",
     ],
   },
