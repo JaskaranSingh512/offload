@@ -14,6 +14,11 @@ const PUBLIC_PATHS = ["/login", "/auth", "/api"];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // E2E escape hatch: the Playwright `mock`/`live` projects boot a LOCAL server with
+  // E2E_BYPASS_AUTH=1 so the suite can reach gated routes without an interactive OAuth
+  // login. This flag is NEVER set in the Vercel/prod environment — guard it stays that way.
+  if (process.env.E2E_BYPASS_AUTH === "1") return NextResponse.next({ request });
+
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

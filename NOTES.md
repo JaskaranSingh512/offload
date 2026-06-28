@@ -132,8 +132,27 @@ service_role). Partner confirmed GitHub OAuth is set up in the Supabase dashboar
   **Still to verify in-browser after GitHub login:** live publish/Connect writes + the forced-failure golden
   fallback (the `/api/*` 401 gate + preview deployment-protection block unauth curls). **Deploy = live**
   (`NEXT_PUBLIC_USE_MOCK=false`) needs the GitHub OAuth provider configured in Supabase.
-- **Next: Phase 8 — Playwright e2e** against the deployed URL (9-step demo path, 3× pass) + the standing
-  forced-failure golden-fallback curl.
+- **Phase 8 (Playwright e2e + open PR) DONE ✅ — branch `feat/phase-8-e2e`.** Two Playwright projects in
+  `playwright.config.ts`: **`mock`** (the gate) boots a local prod server via `webServer`
+  (`build && start -p 3100`, `NEXT_PUBLIC_USE_MOCK=true` + `E2E_BYPASS_AUTH=1`) and runs
+  `e2e/demo-path.e2e.ts` — the 9-step UI walk (onboarding→dashboard→calendar→scripts mark-filmed→chat
+  instruction-preview+Apply→open Reddit post+Approve→analytics recap toggle→Brief next→/build). UI-only,
+  deterministic. **`live`** (`e2e/live-db.e2e.ts`, top-level-skipped unless `E2E_LIVE=1`) signs in a test
+  user via `e2e/global-setup.ts` (storageState) and asserts real rows with a service-role client
+  (post count up, content changed, `approval_state='approved'`, `founder_scripts.filmed=true`). Auth: a
+  single env-gated early-return in `middleware.ts` (`E2E_BYPASS_AUTH==="1"`, only the local webServer sets
+  it — never in Vercel/prod; `.env.example` documents it test-only). Runner isolation: specs are `*.e2e.ts`
+  (vitest excludes `e2e/**` + only globs `*.spec/test`); eslint ignores `e2e/**`; tsc still type-checks them.
+  An **adversarial review agent** caught the must-fix that the build agent's `demo-path` write died on a
+  transient API error (file missing) + a `nav.link` badge selector bug — both fixed. **Gate: `./verify.sh`
+  exits 0 (typecheck+lint+21 vitest), mock e2e passes 3× consecutively** (`for i in 1 2 3; do npm run e2e; done`).
+- **Mock-mode nuance:** mock posts carry no `dbId`, so the single-post live chat-edit patch (drawer updates
+  live from `/api/chat-edit`) only runs in the **live** spec; the mock walk exercises the equivalent §6.6
+  schedule-level chat instruction layer (Proposed change → Apply). **Standing checks still needing a logged-in
+  session (unchanged from Phase 7):** `bash e2e/forced-failure.sh` (the `x-force-fail:1` golden curl) returns
+  401 against prod because the route self-gates on `auth.getUser()` — run it via the `live` project or
+  in-browser after GitHub login; same for the live DB asserts (need `E2E_LIVE=1` + `SUPABASE_SECRET_KEY` +
+  test-user creds + Vercel bypass for a protected `DEPLOY_URL`).
 
 ## ✅ RESOLVED — Canva un-deferred (2026-06-27)
 The partner added Canva to the **shared** DB mid-session (out-of-band: `canva` in `provider_t` + an
