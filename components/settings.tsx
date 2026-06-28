@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { I } from "@/components/icons";
 import { PageHead, Toggle } from "@/components/ui";
 import { ONBOARDED_KEY } from "@/components/first-run-gate";
+import { createClient } from "@/lib/supabase/client";
 import { channelMeta, type ChannelId } from "@/lib/data";
 
 type Policy = "approve" | "auto";
@@ -27,8 +28,19 @@ export const Settings = () => {
   });
   const [email, setEmail] = useState<Record<string, boolean>>({ approval: true, spike: true, milestones: true, filming: true });
   const [push, setPush] = useState<Record<string, boolean>>({ approval: true, spike: false, milestones: false, filming: true });
+  const [signingOut, setSigningOut] = useState(false);
 
   const channels = Object.keys(channelMeta) as ChannelId[];
+
+  const signOut = async () => {
+    setSigningOut(true);
+    try {
+      await createClient().auth.signOut();
+    } catch {
+      // If Supabase isn't configured, fall through to /login anyway.
+    }
+    router.push("/login");
+  };
 
   return (
     <div className="main-inner">
@@ -177,6 +189,24 @@ export const Settings = () => {
             </span>
           </div>
         ))}
+      </div>
+
+      {/* Account */}
+      <div className="card" style={{ marginTop: 20 }}>
+        <div className="card-head">
+          <h3 className="card-title">Account</h3>
+        </div>
+        <div className="settings-row">
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 500, color: "var(--espresso)" }}>Sign out</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              End your session on this device. You&rsquo;ll return to the sign-in screen.
+            </div>
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={signOut} disabled={signingOut}>
+            <I.LogOut size={12} /> {signingOut ? "Signing out…" : "Sign out"}
+          </button>
+        </div>
       </div>
     </div>
   );
