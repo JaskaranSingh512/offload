@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { I } from "@/components/icons";
 import { OffloadMark } from "@/components/logo";
 import { PageHead, Chip, BarChart, LineChart } from "@/components/ui";
-import { channelStats, formatStats, working, recommendations, channelMeta } from "@/lib/data";
+import { channelMeta } from "@/lib/data";
+import { useAnalytics } from "@/lib/queries";
 
 type Mode = "inflight" | "recap";
 
@@ -26,12 +27,6 @@ const dailyData = [
   { label: "17", value: 68000 },
   { label: "18", value: 80000 },
 ];
-
-const channelBars = channelStats.map((c) => ({
-  label: channelMeta[c.channel].name,
-  value: c.signups,
-  color: channelMeta[c.channel].color,
-}));
 
 const ModeToggle = ({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) => (
   <div className="seg" style={{ width: 220 }}>
@@ -57,6 +52,14 @@ export const Analytics = () => {
 type ViewProps = { router: ReturnType<typeof useRouter>; mode: Mode; setMode: (m: Mode) => void };
 
 const InFlight = ({ router, mode, setMode }: ViewProps) => {
+  const { data } = useAnalytics();
+  const channelStats = data?.channelStats ?? [];
+  const working = data?.working ?? [];
+  const channelBars = channelStats.map((c) => ({
+    label: channelMeta[c.channel].name,
+    value: c.signups,
+    color: channelMeta[c.channel].color,
+  }));
   const live = dailyData.slice(0, 3); // day 3 of 14
   return (
     <div className="main-inner">
@@ -138,6 +141,16 @@ const InFlight = ({ router, mode, setMode }: ViewProps) => {
 };
 
 const Recap = ({ router, mode, setMode }: ViewProps) => {
+  const { data } = useAnalytics();
+  const channelStats = data?.channelStats ?? [];
+  const formatStats = data?.formatStats ?? [];
+  const working = data?.working ?? [];
+  const recommendations = data?.recommendations ?? [];
+  const channelBars = channelStats.map((c) => ({
+    label: channelMeta[c.channel].name,
+    value: c.signups,
+    color: channelMeta[c.channel].color,
+  }));
   return (
     <div className="main-inner">
       <PageHead

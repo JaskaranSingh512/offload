@@ -22,6 +22,13 @@ export interface Post {
   subreddit?: string;
   slidesId?: string;
   scriptId?: string;
+  // Live-only fields (set by the Supabase adapter in lib/api.ts; undefined for mock rows).
+  // Let the drawer/mutations reference real DB rows without breaking the mock view-model.
+  dbId?: string;
+  format?: import("@/lib/types/content").PostFormat;
+  status?: string;
+  approvalState?: string;
+  scriptDbId?: string;
 }
 
 export interface DateLabel {
@@ -58,6 +65,9 @@ export interface FounderScript {
   hook: string;
   beats: { time: string; text: string }[];
   note: string;
+  // Live-only: the paired post row id, so "Mark filmed" can flip the post status (undefined for mock).
+  postDbId?: string;
+  filmed?: boolean;
 }
 
 export interface ChannelStat {

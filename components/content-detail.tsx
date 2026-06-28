@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { I } from "@/components/icons";
 import { Chip } from "@/components/ui";
 import { useUI } from "@/lib/store";
-import { channelMeta, redditBody, carouselSets, tiktokScripts, dateLabels, type Post } from "@/lib/data";
+import { channelMeta, redditBody, carouselSets, tiktokScripts, type Post } from "@/lib/data";
+import { useCampaign, useApprovePost } from "@/lib/queries";
 
 // Format families drive which actions/edit affordances the drawer shows (PRD §5.4).
 type EditModel = "text" | "carousel" | "image" | "video";
@@ -33,8 +34,10 @@ export const ContentDetail = () => {
 };
 
 const Drawer = ({ post, onClose }: { post: Post; onClose: () => void }) => {
+  const { data: campaign } = useCampaign();
+  const approve = useApprovePost();
   const meta = channelMeta[post.channel];
-  const date = dateLabels[post.day];
+  const date = campaign?.dateLabels?.[post.day] ?? { num: 0, dow: "", month: "" };
   const model = editModelFor(post);
   const constraint = constraintFor(post);
   const isVideo = model === "video";
@@ -172,8 +175,12 @@ const Drawer = ({ post, onClose }: { post: Post; onClose: () => void }) => {
             <button
               className="btn btn-primary"
               onClick={() => {
-                toast.success("Post approved — it'll publish at its scheduled time.");
-                onClose();
+                const done = () => {
+                  toast.success("Post approved — it'll publish at its scheduled time.");
+                  onClose();
+                };
+                if (post.dbId) approve.mutate(post.dbId, { onSuccess: done, onError: () => toast.error("Couldn't approve — try again.") });
+                else done();
               }}
             >
               <I.Check size={13} /> Approve

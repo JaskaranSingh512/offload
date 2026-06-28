@@ -80,11 +80,21 @@ service_role). Partner confirmed GitHub OAuth is set up in the Supabase dashboar
   `accounts`=2 → trigger already fired for a real GitHub sign-in. Types regenerated to
   `lib/database.types.ts`; `typecheck` exits 0. Gate green. `0002_canva_oauth_states` codifies the Canva
   integration (below).
-- **Next: Phase 4 — Surfaces (live wiring).** Build `lib/supabase/{client,server,admin}.ts` + a typed
-  `lib/api.ts` over `lib/database.types.ts`; swap the mock `lib/data.tsx` reads for live Supabase reads
-  behind `USE_MOCK`; add onboarding brand-doc upload + AI channel suggestion. Wire GitHub login (Supabase
-  Auth) so `auth.uid()` resolves. Gate (§5): mock renders all 5 surfaces + drawer + chat; live reads work
-  with `USE_MOCK=false`; `./verify.sh` exits 0.
+- **Phase 4 (Surfaces — live wiring) DONE ✅ (branch `feat/phase-4-live-wiring`).** Added `lib/api.ts`
+  (typed mock→live seam over `lib/database.types.ts`, `USE_MOCK` defaults true, live reads filter to the
+  Brew Lab **demo account** `…00000b1e51ab` which every authed user can read via the RLS read policy),
+  `lib/queries.ts` (React Query hooks + approve/markFilmed mutations), `lib/types/content.ts` (`PostContent`
+  union), `lib/supabase/admin.ts`. Swapped all 5 surfaces + drawer off direct `lib/data.tsx` imports onto
+  the hooks (mock view-model preserved via `mapPostRow` adapter). Onboarding now lifts wizard state, has a
+  **brand-doc upload (.md/.txt) → `/api/analyze`** (Claude Haiku strict tool → industry/recommended_channels/
+  rationale, persisted to `brands` via admin upsert) that **pre-selects channels**, and **upserts the brand**
+  on completion; `first-run-gate` now checks for a `brands` row (server truth) with a localStorage fast-path.
+  Gate green: `./verify.sh` exits 0 (typecheck+lint+test, incl. new `__tests__/contract.test.ts` PostContent↔
+  format_t parity), `npm run build` prerenders all 7 routes + `/api/analyze`, dev server boots clean.
+  **Env (in `.env.local`, gitignored):** `NEXT_PUBLIC_USE_MOCK` + `NEXT_PUBLIC_DEMO_ACCOUNT_ID` added.
+  Live reads (`USE_MOCK=false`) require an authenticated session (RLS policies are `authenticated`-role).
+- **Next: Phase 5 — AI Route Handlers** (`/api/generate` streamed Sonnet + golden fallback, `/api/chat-edit`
+  Haiku patch). `/api/analyze` already landed here (pulled forward from Phase 5).
 
 ## ✅ RESOLVED — Canva un-deferred (2026-06-27)
 The partner added Canva to the **shared** DB mid-session (out-of-band: `canva` in `provider_t` + an

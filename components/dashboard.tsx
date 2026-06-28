@@ -4,11 +4,15 @@ import { useRouter } from "next/navigation";
 import { I } from "@/components/icons";
 import { PageHead, ChannelIcon, LineChart } from "@/components/ui";
 import { useUI } from "@/lib/store";
-import { posts, TODAY_DAY, channelMeta, type ChannelId } from "@/lib/data";
+import { channelMeta, type ChannelId } from "@/lib/data";
+import { useCampaign } from "@/lib/queries";
 
 export const Dashboard = () => {
   const router = useRouter();
   const openPost = useUI((s) => s.openPost);
+  const { data } = useCampaign();
+  const posts = data?.posts ?? [];
+  const TODAY_DAY = data?.todayDay ?? 0;
   // "Next up" posts (today + tomorrow, upcoming only)
   const nextUp = posts.filter((p) => p.day === TODAY_DAY || p.day === TODAY_DAY + 1).slice(0, 5);
 
@@ -17,7 +21,7 @@ export const Dashboard = () => {
     acc[p.channel] = (acc[p.channel] || 0) + 1;
     return acc;
   }, {});
-  const maxChannel = Math.max(...Object.values(channelCounts));
+  const maxChannel = Math.max(1, ...Object.values(channelCounts));
 
   // Mini 7-day line chart (impressions trend simulated)
   const trendData = [

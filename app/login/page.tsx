@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import type { Database } from "@/lib/database.types";
 import { OffloadLogo } from "@/components/logo";
 import { I } from "@/components/icons";
 
@@ -16,19 +14,17 @@ export default function LoginPage() {
   // Client is created in the browser only (inside the effect), never during the
   // server prerender — createBrowserClient throws if the NEXT_PUBLIC_* env vars are
   // missing, which would crash `next build`.
-  const [client, setClient] = useState<SupabaseClient<Database> | null>(null);
-  const [state, setState] = useState<AuthState>("checking");
+  // Decide configured-ness during render from the inlined NEXT_PUBLIC_* env vars, so we never
+  // construct the browser client during SSR (it throws when they're missing) and never call
+  // setState synchronously inside the effect. The client is created on demand (it shares the
+  // same session storage across calls).
+  const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const [state, setState] = useState<AuthState>(configured ? "checking" : "unconfigured");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    let supabase: SupabaseClient<Database>;
-    try {
-      supabase = createClient();
-    } catch {
-      setState("unconfigured");
-      return;
-    }
-    setClient(supabase);
+    if (!configured) return;
+    const supabase = createClient();
 
     // Surface an OAuth callback error (read from the URL, no Suspense boundary needed).
     const err = new URLSearchParams(window.location.search).get("error");
@@ -52,11 +48,12 @@ export default function LoginPage() {
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [router]);
+  }, [router, configured]);
 
   const signInWith = async (provider: "github" | "google") => {
-    if (!client) return;
+    if (!configured) return;
     setBusy(true);
+    const client = createClient();
     const { error } = await client.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` },
