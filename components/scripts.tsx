@@ -3,9 +3,11 @@
 import { toast } from "sonner";
 import { I } from "@/components/icons";
 import { PageHead } from "@/components/ui";
-import { founderScripts } from "@/lib/data";
+import { useScripts, useMarkFilmed } from "@/lib/queries";
 
 export const Scripts = () => {
+  const { data: founderScripts = [] } = useScripts();
+  const markFilmed = useMarkFilmed();
   return (
     <div className="main-inner">
       <PageHead
@@ -102,7 +104,15 @@ export const Scripts = () => {
               <button
                 className="btn btn-primary btn-sm"
                 style={{ marginLeft: "auto" }}
-                onClick={() => toast.success(`"${s.title}" marked filmed — its calendar slot is now active.`)}
+                onClick={() =>
+                  markFilmed.mutate(
+                    { scriptId: s.id, postId: s.postDbId ?? "" },
+                    {
+                      onSuccess: () => toast.success(`"${s.title}" marked filmed — its calendar slot is now active.`),
+                      onError: () => toast.error("Couldn't mark filmed — try again."),
+                    },
+                  )
+                }
               >
                 <I.Film size={12} /> Mark filmed
               </button>

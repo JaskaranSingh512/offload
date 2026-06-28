@@ -5,11 +5,17 @@ import { toast } from "sonner";
 import { I } from "@/components/icons";
 import { PageHead, ChannelIcon } from "@/components/ui";
 import { useUI } from "@/lib/store";
-import { posts, dateLabels, channelMeta, TODAY_DAY, type Post, type ChannelId } from "@/lib/data";
+import { channelMeta, type Post, type ChannelId } from "@/lib/data";
+import { useCampaign, useApproveAll } from "@/lib/queries";
 
 export const ContentCalendar = () => {
   const openPost = useUI((s) => s.openPost);
   const [filter, setFilter] = useState<"all" | ChannelId>("all");
+  const { data } = useCampaign();
+  const posts = data?.posts ?? [];
+  const dateLabels = data?.dateLabels ?? [];
+  const TODAY_DAY = data?.todayDay ?? -1;
+  const approveAll = useApproveAll();
 
   const filtered = filter === "all" ? posts : posts.filter((p) => p.channel === filter);
 
@@ -23,6 +29,7 @@ export const ContentCalendar = () => {
       {Array.from({ length: 7 }, (_, dayIdx) => {
         const dayNum = weekOffset * 7 + dayIdx;
         const date = dateLabels[dayNum];
+        if (!date) return <div key={dayNum} className="cal-day" />;
         const dayPosts = postsByDay[dayNum] || [];
         const isToday = dayNum === TODAY_DAY;
         return (
@@ -82,7 +89,13 @@ export const ContentCalendar = () => {
             </button>
             <button
               className="btn btn-primary"
-              onClick={() => toast.success(`Approved all pending posts${filter === "all" ? "" : ` on ${channelMeta[filter].name}`}.`)}
+              onClick={() =>
+                approveAll.mutate(filter, {
+                  onSuccess: () =>
+                    toast.success(`Approved all pending posts${filter === "all" ? "" : ` on ${channelMeta[filter].name}`}.`),
+                  onError: () => toast.error("Couldn't approve posts — try again."),
+                })
+              }
             >
               <I.Send size={13} /> Approve all
             </button>

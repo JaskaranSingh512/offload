@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { I } from "@/components/icons";
 import { Chip } from "@/components/ui";
 import { useUI } from "@/lib/store";
-import { channelMeta, redditBody, carouselSets, tiktokScripts, dateLabels, type Post } from "@/lib/data";
+import { channelMeta, redditBody, carouselSets, tiktokScripts, type Post, type CarouselSlide } from "@/lib/data";
+import { useCampaign, useApprovePost } from "@/lib/queries";
 
 // Format families drive which actions/edit affordances the drawer shows (PRD §5.4).
 type EditModel = "text" | "carousel" | "image" | "video";
@@ -33,8 +34,11 @@ export const ContentDetail = () => {
 };
 
 const Drawer = ({ post, onClose }: { post: Post; onClose: () => void }) => {
+  const { data: campaign } = useCampaign();
+  const approve = useApprovePost();
+  const setChatOpen = useUI((s) => s.setChatOpen);
   const meta = channelMeta[post.channel];
-  const date = dateLabels[post.day];
+  const date = campaign?.dateLabels?.[post.day] ?? { num: 0, dow: "", month: "" };
   const model = editModelFor(post);
   const constraint = constraintFor(post);
   const isVideo = model === "video";
@@ -137,7 +141,7 @@ const Drawer = ({ post, onClose }: { post: Post; onClose: () => void }) => {
         </div>
 
         <div className="drawer-foot">
-          <button className="btn btn-secondary" onClick={() => toast(`${editLabel} — opening editor…`)}>
+          <button className="btn btn-secondary" onClick={() => setChatOpen(true)}>
             <I.Edit size={13} /> {editLabel}
           </button>
           {model === "image" && (
@@ -172,8 +176,12 @@ const Drawer = ({ post, onClose }: { post: Post; onClose: () => void }) => {
             <button
               className="btn btn-primary"
               onClick={() => {
-                toast.success("Post approved — it'll publish at its scheduled time.");
-                onClose();
+                const done = () => {
+                  toast.success("Post approved — it'll publish at its scheduled time.");
+                  onClose();
+                };
+                if (post.dbId) approve.mutate(post.dbId, { onSuccess: done, onError: () => toast.error("Couldn't approve — try again.") });
+                else done();
               }}
             >
               <I.Check size={13} /> Approve
@@ -191,7 +199,7 @@ const RedditPreview = ({ post }: { post: Post }) => (
       <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--c-reddit)", display: "grid", placeItems: "center" }}>
         <I.Reddit size={14} style={{ color: "white" }} />
       </div>
-      <span className="sub">{post.subreddit}</span>
+      <span className="sub">{post.subreddit ?? "r/Coffee"}</span>
       <span>· Posted by u/brewlab_andre</span>
       <span>· {post.time}</span>
     </div>
@@ -199,7 +207,12 @@ const RedditPreview = ({ post }: { post: Post }) => (
     <div
       className="reddit-body"
       dangerouslySetInnerHTML={{
-        __html: redditBody.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br/>"),
+        __html: (((post.content as { body?: string } | undefined)?.body || redditBody))
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+          .replace(/\n/g, "<br/>"),
       }}
     />
     <div className="reddit-foot">
@@ -216,7 +229,15 @@ const RedditPreview = ({ post }: { post: Post }) => (
 );
 
 const CarouselPreview = ({ post }: { post: Post }) => {
-  const slides = (post.slidesId && carouselSets[post.slidesId]) || carouselSets.sad_iced;
+  const live = post.content as { slides?: { heading: string; sub: string }[]; caption?: string } | undefined;
+  const slides: CarouselSlide[] = live?.slides?.length
+    ? live.slides.map((s, i) => ({
+        eyebrow: "",
+        text: s.heading,
+        sub: s.sub || undefined,
+        tone: (["espresso", "cream", "teal"] as const)[i % 3],
+      }))
+    : (post.slidesId && carouselSets[post.slidesId]) || carouselSets.sad_iced;
   const [active, setActive] = useState(0);
   const slide = slides[active];
   return (
@@ -266,11 +287,9 @@ const CarouselPreview = ({ post }: { post: Post }) => {
         <div className="eyebrow" style={{ marginBottom: 6 }}>
           Caption
         </div>
-        <p style={{ fontSize: 13.5, margin: 0, color: "var(--espresso)", lineHeight: 1.5 }}>
-          Cold brew that doesn&apos;t taste like sad iced coffee. 18 hours of slow steep, 50°F, no shortcuts. 200-bottle batch — link in bio.
-          <br />
-          <br />
-          <span style={{ color: "var(--teal-deep)" }}>#coldbrew #smallbatch #brooklyncoffee #specialtycoffee</span>
+        <p style={{ fontSize: 13.5, margin: 0, color: "var(--espresso)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+          {live?.caption ||
+            "Cold brew that doesn't taste like sad iced coffee. 18 hours of slow steep, 50°F, no shortcuts. 200-bottle batch — link in bio."}
         </p>
       </div>
     </div>
@@ -278,7 +297,15 @@ const CarouselPreview = ({ post }: { post: Post }) => {
 };
 
 const TikTokPreview = ({ post }: { post: Post }) => {
-  const script = (post.scriptId && tiktokScripts[post.scriptId]) || tiktokScripts.blind_taste;
+  const tc = post.content as { hook?: string; scenes?: string[]; shot_note?: string; duration_sec?: number } | undefined;
+  const script =
+    tc && (tc.hook || tc.scenes?.length)
+      ? {
+          hook: tc.hook ?? "",
+          duration: tc.duration_sec ? `${tc.duration_sec}s` : "—",
+          scenes: (tc.scenes ?? []).map((s) => ({ onScreen: s, vo: tc.shot_note ?? "", meta: "" })),
+        }
+      : (post.scriptId && tiktokScripts[post.scriptId]) || tiktokScripts.blind_taste;
   return (
     <div>
       <div className="card" style={{ background: "var(--espresso)", color: "var(--cream)", padding: 18, marginBottom: 16 }}>
@@ -317,16 +344,22 @@ const TikTokPreview = ({ post }: { post: Post }) => {
 };
 
 const ThreadPreview = ({ post }: { post: Post }) => {
-  const isThread = post.type.toLowerCase().includes("thread");
-  const tweets = isThread
-    ? [
-        'Most "small batch" cold brew you see on a grocery shelf is doing 4,000-bottle runs.',
-        "For context: ours are 200. Both technically small batch. One of them is not.",
-        "The label says nothing about how long it's been sitting on a pallet, or that 80% of the bottle is water, or that the concentrate is 6 months old.",
-        "I'm not mad about it. I just think you should know what you're paying $5.99 for.",
-        "If you want the actual small-batch version, it's $4.50 and you can find us in 12 cafés in Brooklyn. (Or brewlab.co, link in bio.)",
-      ]
-    : [post.title];
+  const tc = post.content as { tweets?: string[]; body?: string } | undefined;
+  const isThread = post.format === "x_thread" || post.type.toLowerCase().includes("thread");
+  const tweets =
+    tc?.tweets?.length
+      ? tc.tweets
+      : tc?.body
+        ? [tc.body]
+        : isThread
+          ? [
+              'Most "small batch" cold brew you see on a grocery shelf is doing 4,000-bottle runs.',
+              "For context: ours are 200. Both technically small batch. One of them is not.",
+              "The label says nothing about how long it's been sitting on a pallet, or that 80% of the bottle is water, or that the concentrate is 6 months old.",
+              "I'm not mad about it. I just think you should know what you're paying $5.99 for.",
+              "If you want the actual small-batch version, it's $4.50 and you can find us in 12 cafés in Brooklyn. (Or brewlab.co, link in bio.)",
+            ]
+          : [post.title];
 
   return (
     <div className="flex flex-col gap-3">

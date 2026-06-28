@@ -80,11 +80,40 @@ service_role). Partner confirmed GitHub OAuth is set up in the Supabase dashboar
   `accounts`=2 → trigger already fired for a real GitHub sign-in. Types regenerated to
   `lib/database.types.ts`; `typecheck` exits 0. Gate green. `0002_canva_oauth_states` codifies the Canva
   integration (below).
-- **Next: Phase 4 — Surfaces (live wiring).** Build `lib/supabase/{client,server,admin}.ts` + a typed
-  `lib/api.ts` over `lib/database.types.ts`; swap the mock `lib/data.tsx` reads for live Supabase reads
-  behind `USE_MOCK`; add onboarding brand-doc upload + AI channel suggestion. Wire GitHub login (Supabase
-  Auth) so `auth.uid()` resolves. Gate (§5): mock renders all 5 surfaces + drawer + chat; live reads work
-  with `USE_MOCK=false`; `./verify.sh` exits 0.
+- **Phase 4 (Surfaces — live wiring) DONE ✅ (branch `feat/phase-4-live-wiring`).** Added `lib/api.ts`
+  (typed mock→live seam over `lib/database.types.ts`, `USE_MOCK` defaults true, live reads filter to the
+  Brew Lab **demo account** `…00000b1e51ab` which every authed user can read via the RLS read policy),
+  `lib/queries.ts` (React Query hooks + approve/markFilmed mutations), `lib/types/content.ts` (`PostContent`
+  union), `lib/supabase/admin.ts`. Swapped all 5 surfaces + drawer off direct `lib/data.tsx` imports onto
+  the hooks (mock view-model preserved via `mapPostRow` adapter). Onboarding now lifts wizard state, has a
+  **brand-doc upload (.md/.txt) → `/api/analyze`** (Claude Haiku strict tool → industry/recommended_channels/
+  rationale, persisted to `brands` via admin upsert) that **pre-selects channels**, and **upserts the brand**
+  on completion; `first-run-gate` now checks for a `brands` row (server truth) with a localStorage fast-path.
+  Gate green: `./verify.sh` exits 0 (typecheck+lint+test, incl. new `__tests__/contract.test.ts` PostContent↔
+  format_t parity), `npm run build` prerenders all 7 routes + `/api/analyze`, dev server boots clean.
+  **Env (in `.env.local`, gitignored):** `NEXT_PUBLIC_USE_MOCK` + `NEXT_PUBLIC_DEMO_ACCOUNT_ID` added.
+  Live reads (`USE_MOCK=false`) require an authenticated session (RLS policies are `authenticated`-role).
+- **Phase 5 (AI Route Handlers) DONE ✅ (branch `feat/phase-5-ai-handlers`).** `/api/generate`
+  (`claude-sonnet-4-6`, streamed via a strict `emit_posts` tool, 28s AbortController, **golden-payload
+  fallback** on timeout/error/`x-force-fail`/truncation/too-few-posts) and `/api/chat-edit`
+  (`claude-haiku-4-5`, compute-only validated patch, video 422-guarded, 20s timeout). Pure modules:
+  `lib/ai/content-validation.ts` (CAPS + `validateFullContent`/`validateAndMergePatch`),
+  `lib/generate-schema.ts` (`EMIT_POSTS_TOOL` + `validateAndCap`), `lib/golden-payload.ts`
+  (`GOLDEN_PAYLOAD` + `reanchorGolden` + `CACHED_RESEARCH`). **Decisions (user):** writes go to the
+  **signed-in user's own account**; `lib/api.ts` reads now **follow the user** (`resolveAccount`) with
+  the Brew Lab demo account as empty-state fallback, and analytics falls back to the seeded showcase
+  (per-account metrics are v1). Carousel SVG→PNG **deferred**. Inserts go through an atomic
+  **`create_campaign_posts` RPC** (migrations `0003`/`0004` — regen-delete folded in, EXECUTE locked to
+  service_role; SQL committed under `supabase/migrations/`). Frontend: onboarding LoadingStep streams real
+  generate progress; the drawer renders live `post.content`; the chat launcher is the **wow moment** —
+  post-scoped chat-edit → preview → Apply updates the drawer live. An **adversarial review workflow**
+  caught + fixed 5 must-fix issues (calendar off-by-one, truncation→golden, atomic regen, golden
+  re-anchor, loader leak) + XSS-escape/owner-scope/timeout hardening. Gate: `./verify.sh` 0 (typecheck +
+  lint + **21 tests**), `next build` prerenders all routes + 3 dynamic `/api/*`, RPC + 401/400 auth-gating
+  smoke-tested. **Live model path (streamed generate + chat-edit patch) needs a logged-in session to
+  exercise end-to-end** — verify after GitHub/Google login.
+- **Next: Phase 6 — OAuth/publish mock + onboarding Connect** (`social_accounts.status='mock'`, approve→
+  publish status-flip + toast). Then Phase 7 integrate/deploy, Phase 8 Playwright e2e.
 
 ## ✅ RESOLVED — Canva un-deferred (2026-06-27)
 The partner added Canva to the **shared** DB mid-session (out-of-band: `canva` in `provider_t` + an

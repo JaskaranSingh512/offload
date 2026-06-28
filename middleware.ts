@@ -49,8 +49,11 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
+  // API routes self-gate (they return a JSON 401), so don't bounce them to the HTML login page —
+  // the cookie refresh above still runs, so the handler reads a fresh auth.uid().
+  const isApi = pathname.startsWith("/api/");
 
-  if (!user && !isPublic) {
+  if (!user && !isPublic && !isApi) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", pathname);

@@ -1,12 +1,23 @@
 "use client";
 
+import { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 
-// Client provider shell. Currently just hosts the global toaster; this is where
-// React Query / PostHog providers will mount when the live data layer is wired.
+// Client provider shell: React Query for the live data layer (lib/queries.ts) + the
+// global Sonner toaster. PostHog mounts here too once analytics events land (Phase 7).
 export function Providers({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 },
+        },
+      }),
+  );
+
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       {children}
       <Toaster
         position="bottom-center"
@@ -19,6 +30,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
-    </>
+    </QueryClientProvider>
   );
 }
