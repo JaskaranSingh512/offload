@@ -54,25 +54,17 @@ export default function LoginPage() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signIn = async () => {
+  const signInWith = async (provider: "github" | "google") => {
     if (!client) return;
     setBusy(true);
-    // After the OAuth round-trip, land on wherever the gate sent us from
-    // (?next=…), defaulting to the dashboard. Avoid bouncing back to /login.
-    const params = new URLSearchParams(window.location.search);
-    const requested = params.get("next");
-    const next = requested && requested !== "/login" ? requested : "/";
     const { error } = await client.auth.signInWithOAuth({
-      provider: "github",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/login` },
     });
     if (error) {
       toast.error(error.message);
       setBusy(false);
     }
-    // On success the browser navigates to GitHub; no need to reset busy.
   };
 
   const signOut = async () => {
@@ -118,15 +110,24 @@ export default function LoginPage() {
                 Use your GitHub account to continue. We only read your basic profile to
                 create your workspace.
               </p>
-              <div className="onb-actions" style={{ justifyContent: "center", marginTop: 24 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 24 }}>
                 <button
                   className="btn btn-primary btn-lg"
-                  onClick={signIn}
+                  onClick={() => signInWith("github")}
                   disabled={busy}
                   style={{ width: "100%", justifyContent: "center", gap: 10 }}
                 >
                   <I.GitHub size={18} />
                   {busy ? "Redirecting…" : "Continue with GitHub"}
+                </button>
+                <button
+                  className="btn btn-secondary btn-lg"
+                  onClick={() => signInWith("google")}
+                  disabled={busy}
+                  style={{ width: "100%", justifyContent: "center", gap: 10 }}
+                >
+                  <I.Google size={18} />
+                  {busy ? "Redirecting…" : "Continue with Google"}
                 </button>
               </div>
             </>
