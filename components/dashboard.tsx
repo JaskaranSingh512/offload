@@ -90,7 +90,7 @@ export const Dashboard = () => {
           <div className="ac-bg" />
           <div className="ac-inner">
             <div className="ac-eyebrow">Active campaign · day 6 of 14</div>
-            <h2 className="ac-name">The Honest Cold Brew — Spring Launch</h2>
+            <h2 className="ac-name">The Honest Cold Brew — Summer Launch</h2>
             <p className="ac-dates">June 22 – July 5, 2026 · Across Reddit, TikTok, Instagram, X</p>
 
             <div className="ac-stats">

@@ -72,7 +72,7 @@ export const dashboard = {
   nextUpTitle: "Next up",
   signupsTrendTitle: "Signups trend · last 7 days",
   byChannelTitle: "By channel · this campaign",
-  activeCampaignName: "The Honest Cold Brew — Spring Launch",
+  activeCampaignName: "The Honest Cold Brew — Summer Launch",
   offloadSuggestsEyebrow: "Offload suggests",
   // KPI labels (kpi-label).
   kpis: ["Impressions (7d)", "Signups (7d)", "Engagement rate", "Posts scheduled"] as const,

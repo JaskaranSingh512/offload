@@ -77,7 +77,7 @@ export const ContentCalendar = () => {
     <div className="main-inner">
       <PageHead
         eyebrow="Content Calendar"
-        title='The Honest Cold Brew <span class="em">— Spring Launch</span>'
+        title='The Honest Cold Brew <span class="em">— Summer Launch</span>'
         sub="June 22 – July 5 · 35 posts across 4 channels · all drafted and scheduled"
         actions={
           <>
