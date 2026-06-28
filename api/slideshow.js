@@ -196,19 +196,13 @@ export default async function handler(req, res) {
   const slideData = message.content.find((b) => b.type === "tool_use")?.input;
   if (!slideData) return res.status(500).json({ error: "Claude returned no tool call" });
 
-  // 2. Generate Canva slides
+  // 2. Canva: link to the base template for the founder to customise
+  // Note: Canva REST API does not expose a design-copy endpoint — programmatic
+  // per-slide rendering is handled post-hackathon via the Canva MCP or autofill API.
+  // For now we surface the slide copy + a direct link to the template in Canva.
+  const canvaTemplateUrl = `https://www.canva.com/design/${TEMPLATE_ID}/edit`;
   const slideExports = [];
   let canvaError = null;
-
-  try {
-    const token = await getCanvaToken(account_id);
-    for (const slide of slideData.slides) {
-      slideExports.push(await generateSlide(token, slide));
-    }
-  } catch (err) {
-    console.error("Canva error:", err.message);
-    canvaError = err.message;
-  }
 
   // 3. Create campaign row (required FK for posts)
   const { data: campaign } = await supabase.from("campaigns").insert({
@@ -244,12 +238,12 @@ export default async function handler(req, res) {
 
   res.json({
     account_id,
-    campaign_id:   campaign.id,
-    post_ids:      posts?.map((p) => p.id) ?? [],
-    slides:        slideData.slides,
-    caption:       slideData.caption,
+    campaign_id:        campaign.id,
+    post_ids:           posts?.map((p) => p.id) ?? [],
+    slides:             slideData.slides,
+    caption:            slideData.caption,
     channel,
-    canva_exports: slideExports,
-    canva_error:   canvaError,
+    canva_template_url: canvaTemplateUrl,
+    canva_exports:      slideExports,
   });
 }
