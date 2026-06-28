@@ -626,7 +626,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_campaign_posts: {
+        Args: { p_account: string; p_campaign: string; p_posts: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       approval_t: "pending" | "approved" | "rejected"

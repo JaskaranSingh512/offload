@@ -2,7 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { useUI } from "@/lib/store";
 import type { ChannelId } from "@/lib/data";
+import type { PostContent } from "@/lib/types/content";
 
 // React Query hooks over the typed data layer. In mock mode the queryFn resolves
 // synchronously-fast, so surfaces share one code path across mock and live.
@@ -54,6 +56,27 @@ export function useMarkFilmed() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.campaign });
       qc.invalidateQueries({ queryKey: keys.scripts });
+    },
+  });
+}
+
+// Chat-edit preview — returns a validated proposed content; no DB write, no invalidation.
+export function useChatEdit() {
+  return useMutation({
+    mutationFn: ({ postId, message }: { postId: string; message: string }) => api.chatEdit(postId, message),
+  });
+}
+
+// Apply the previewed patch: persist, refresh the calendar, and re-open the drawer with the new
+// content so the open post re-renders immediately (the store is the drawer's source of truth).
+export function useApplyPatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, content }: { postId: string; content: PostContent }) => api.applyPatch(postId, content),
+    onSuccess: (_data, { content }) => {
+      qc.invalidateQueries({ queryKey: keys.campaign });
+      const cur = useUI.getState().openedPost;
+      if (cur) useUI.getState().openPost({ ...cur, content });
     },
   });
 }

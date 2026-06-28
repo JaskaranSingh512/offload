@@ -8,6 +8,7 @@ import { Toggle } from "@/components/ui";
 import { OffloadLogo, OffloadMark } from "@/components/logo";
 import { ONBOARDED_KEY } from "@/components/first-run-gate";
 import { createClient } from "@/lib/supabase/client";
+import { api } from "@/lib/api";
 import type { ChannelId } from "@/lib/data";
 
 // UI voice id → DB voice_t enum.
@@ -661,20 +662,55 @@ const LoadingStep = ({ onComplete }: { onComplete: () => void }) => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    let done = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     const start = Date.now();
-    const totalMs = 2800;
-    const t = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const p = Math.min(elapsed / totalMs, 1);
-      setProgress(p * 100);
-      const idx = Math.min(Math.floor(p * tasks.length), tasks.length - 1);
-      setTaskIdx(idx);
-      if (p >= 1) {
-        clearInterval(t);
-        setTimeout(onComplete, 480);
+    const finish = () => {
+      if (done) return;
+      done = true;
+      setProgress(100);
+      setTaskIdx(tasks.length - 1);
+      // Keep the loader on screen at least ~1.6s even if generation returns instantly (mock/golden).
+      const wait = Math.max(0, 1600 - (Date.now() - start));
+      timer = setTimeout(onComplete, wait + 300);
+    };
+
+    (async () => {
+      try {
+        const res = await api.generate({});
+        if (!res.body) return finish();
+        reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        let ticks = 0;
+        for (;;) {
+          const { value, done: rd } = await reader.read();
+          if (done || rd) break;
+          buf += dec.decode(value, { stream: true });
+          const frames = buf.split("\n\n");
+          buf = frames.pop() ?? "";
+          for (const f of frames) {
+            if (f.includes("event: token")) {
+              ticks++;
+              setProgress(Math.min(95, 8 + ticks * 3));
+              setTaskIdx(Math.min(tasks.length - 1, Math.floor(ticks / 4)));
+            } else if (f.includes("event: done") || f.includes("event: error")) {
+              return finish();
+            }
+          }
+        }
+        finish();
+      } catch {
+        finish(); // never dead-end the demo
       }
-    }, 60);
-    return () => clearInterval(t);
+    })();
+
+    return () => {
+      done = true;
+      if (timer) clearTimeout(timer);
+      reader?.cancel().catch(() => {});
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

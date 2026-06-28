@@ -47,6 +47,15 @@ export interface PostContentByFormat {
 
 // Runtime list of every format key — kept in lockstep with the format_t enum by the
 // contract test (lib types are erased at runtime, so the test needs a real array).
+// Response shape from /api/chat-edit (defined here, not in the route, so lib/api.ts can import it
+// without depending on a server module).
+export type ChatEditResponse = {
+  postId: string;
+  format: PostFormat;
+  proposed_content: PostContent;
+  summary: string;
+};
+
 export const POST_FORMATS = [
   "reddit_text",
   "x_post",

@@ -29,6 +29,8 @@ export interface Post {
   status?: string;
   approvalState?: string;
   scriptDbId?: string;
+  // Live posts.content JSONB (the drawer renders from this; undefined for mock rows).
+  content?: import("@/lib/types/content").PostContent;
 }
 
 export interface DateLabel {

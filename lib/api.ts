@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/database.types";
-import type { PostContent, PostFormat } from "@/lib/types/content";
+import type { ChatEditResponse, PostContent, PostFormat } from "@/lib/types/content";
 import * as mock from "@/lib/data";
 import type {
   Post,
@@ -28,6 +28,18 @@ let _sb: ReturnType<typeof createClient> | null = null;
 const sb = () => (_sb ??= createClient());
 
 const DAY_MS = 86_400_000;
+
+// Reads follow the signed-in user once they have their own posts; until then (and when logged
+// out) they see the Brew Lab showcase as the empty-state. Generated posts therefore appear the
+// moment generation lands rows on the user's account.
+async function resolveAccount(): Promise<string> {
+  const {
+    data: { user },
+  } = await sb().auth.getUser();
+  if (!user) return DEMO;
+  const { count } = await sb().from("posts").select("id", { count: "exact", head: true }).eq("account_id", user.id);
+  return (count ?? 0) > 0 ? user.id : DEMO;
+}
 
 // ===== Format → view-model lookups (CONTRACT §1b/§1d) =====
 const FORMAT_TYPE: Record<PostFormat, string> = {
@@ -104,6 +116,7 @@ function mapPostRow(row: PostRow, startMs: number): Post {
     format,
     status: row.status ?? undefined,
     approvalState: row.approval_state ?? undefined,
+    content: content ?? undefined,
   };
 }
 
@@ -128,17 +141,22 @@ export const api = {
     if (USE_MOCK) {
       return { posts: mock.posts, dateLabels: mock.dateLabels, todayDay: mock.TODAY_DAY };
     }
+    const acct = await resolveAccount();
     const { data, error } = await sb()
       .from("posts")
       .select("*")
-      .eq("account_id", DEMO)
+      .eq("account_id", acct)
       .order("scheduled_at", { ascending: true });
     if (error) throw error;
     const rows = data ?? [];
     const times = rows
       .map((r) => (r.scheduled_at ? new Date(r.scheduled_at).getTime() : null))
       .filter((t): t is number => t !== null);
-    const startMs = times.length ? Math.min(...times) : Date.now();
+    // Anchor day 0 to UTC midnight of the earliest post, so a later-day post with an earlier
+    // clock time doesn't floor into the previous day's column.
+    const earliest = new Date(times.length ? Math.min(...times) : Date.now());
+    earliest.setUTCHours(0, 0, 0, 0);
+    const startMs = earliest.getTime();
     const posts = rows.map((r) => mapPostRow(r, startMs));
     const todayDay = Math.min(13, Math.max(0, Math.floor((Date.now() - startMs) / DAY_MS)));
     return { posts, dateLabels: buildDateLabels(startMs), todayDay };
@@ -146,10 +164,11 @@ export const api = {
 
   async getScripts(): Promise<FounderScript[]> {
     if (USE_MOCK) return mock.founderScripts;
+    const acct = await resolveAccount();
     const { data, error } = await sb()
       .from("founder_scripts")
       .select("*, posts!inner(id, format)")
-      .eq("account_id", DEMO)
+      .eq("account_id", acct)
       .in("posts.format", ["tiktok_script", "founder_script"]);
     if (error) throw error;
     return (data ?? []).map((s): FounderScript => {
@@ -189,10 +208,20 @@ export const api = {
         recommendations: mock.recommendations,
       };
     }
+    // Phase 5 generates posts, not metrics — so read the user's metrics if any, else fall back to
+    // the seeded Brew Lab showcase so Analytics stays populated. (Per-account metrics are v1.)
+    let metricsAcct = DEMO;
+    const {
+      data: { user },
+    } = await sb().auth.getUser();
+    if (user) {
+      const { count } = await sb().from("post_metrics").select("id", { count: "exact", head: true }).eq("account_id", user.id);
+      if ((count ?? 0) > 0) metricsAcct = user.id;
+    }
     const { data, error } = await sb()
       .from("post_metrics")
       .select("impressions, engagements, engagement_rate, followers_delta, posts!inner(channel, format, account_id)")
-      .eq("account_id", DEMO);
+      .eq("account_id", metricsAcct);
     if (error) throw error;
     type MetricRow = {
       impressions: number | null;
@@ -282,10 +311,11 @@ export const api = {
   // Scoped so it can never sweep founder-posted video drafts (CONTRACT §1c/C7).
   async approveAll(channel: ChannelId | "all") {
     if (USE_MOCK) return;
+    const acct = await resolveAccount();
     let q = sb()
       .from("posts")
       .update({ approval_state: "approved" })
-      .eq("account_id", DEMO)
+      .eq("account_id", acct)
       .eq("status", "scheduled")
       .eq("approval_state", "pending");
     if (channel !== "all") q = q.eq("channel", channel);
@@ -300,5 +330,60 @@ export const api = {
     if (fs.error) throw fs.error;
     const p = await sb().from("posts").update({ status: "scheduled" }).eq("id", postId).eq("status", "draft");
     if (p.error) throw p.error;
+  },
+
+  // ===== Phase 5 AI calls (stream + edit) =====
+  // Live "Generate" → SSE stream from the Sonnet route. In mock mode, resolve immediately so the
+  // onboarding loader still completes without a backend.
+  async generate(brief?: Record<string, unknown>): Promise<Response> {
+    if (USE_MOCK) {
+      const enc = new TextEncoder();
+      const stream = new ReadableStream({
+        start(c) {
+          c.enqueue(enc.encode(`event: done\ndata: ${JSON.stringify({ ok: true, count: 0, golden: false, mock: true })}\n\n`));
+          c.close();
+        },
+      });
+      return new Response(stream, { headers: { "Content-Type": "text/event-stream" } });
+    }
+    return fetch("/api/generate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(brief ?? {}),
+    });
+  },
+
+  // Chat-edit: returns a validated proposed content for preview (no write). Apply is separate.
+  async chatEdit(postId: string, message: string): Promise<ChatEditResponse> {
+    if (USE_MOCK) {
+      return {
+        postId,
+        format: "reddit_text",
+        proposed_content: { title: "A warmer take", body: "Rewrote this in a warmer, first-person voice. (mock preview)" },
+        summary: "Rewrote warmer (mock).",
+      };
+    }
+    const res = await fetch("/api/chat-edit", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ postId, message }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error ?? `chat-edit failed (${res.status})`);
+    }
+    return res.json();
+  },
+
+  // Apply the previewed patch. RLS permits own-row writes, so this goes through the browser client.
+  async applyPatch(postId: string, content: PostContent): Promise<void> {
+    if (USE_MOCK) return;
+    const { data, error } = await sb()
+      .from("posts")
+      .update({ content: content as never })
+      .eq("id", postId)
+      .select("id");
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error("No row updated — you can only edit your own posts.");
   },
 };
