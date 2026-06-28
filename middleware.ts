@@ -9,7 +9,7 @@ import { createServerClient } from "@supabase/ssr";
 // Components read a fresh auth.uid().
 
 // Public paths that must stay reachable while signed out.
-const PUBLIC_PATHS = ["/login", "/auth", "/api"];
+const PUBLIC_PATHS = ["/login", "/auth", "/api", "/waitlist"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
