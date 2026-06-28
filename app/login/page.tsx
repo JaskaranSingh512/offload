@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -8,15 +9,15 @@ import type { Database } from "@/lib/database.types";
 import { OffloadLogo } from "@/components/logo";
 import { I } from "@/components/icons";
 
-type AuthState = "checking" | "signed-out" | "signed-in" | "unconfigured";
+type AuthState = "checking" | "signed-out" | "unconfigured";
 
 export default function LoginPage() {
+  const router = useRouter();
   // Client is created in the browser only (inside the effect), never during the
   // server prerender — createBrowserClient throws if the NEXT_PUBLIC_* env vars are
   // missing, which would crash `next build`.
   const [client, setClient] = useState<SupabaseClient<Database> | null>(null);
   const [state, setState] = useState<AuthState>("checking");
-  const [email, setEmail] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -35,8 +36,9 @@ export default function LoginPage() {
 
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
-        setEmail(data.user.email ?? data.user.id);
-        setState("signed-in");
+        // Already signed in — move straight into onboarding rather than showing
+        // the "you're signed in" confirmation.
+        router.replace("/onboarding");
       } else {
         setState("signed-out");
       }
@@ -44,15 +46,13 @@ export default function LoginPage() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setEmail(session.user.email ?? session.user.id);
-        setState("signed-in");
+        router.replace("/onboarding");
       } else {
         setState("signed-out");
-        setEmail(null);
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   const signInWith = async (provider: "github" | "google") => {
     if (!client) return;
@@ -65,14 +65,6 @@ export default function LoginPage() {
       toast.error(error.message);
       setBusy(false);
     }
-  };
-
-  const signOut = async () => {
-    if (!client) return;
-    setBusy(true);
-    await client.auth.signOut();
-    toast.success("Signed out");
-    setBusy(false);
   };
 
   return (
@@ -128,33 +120,6 @@ export default function LoginPage() {
                 >
                   <I.Google size={18} />
                   {busy ? "Redirecting…" : "Continue with Google"}
-                </button>
-              </div>
-            </>
-          )}
-
-          {state === "signed-in" && (
-            <>
-              <div
-                className="onb-step-label"
-                style={{ color: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
-              >
-                <I.Check size={15} /> GitHub auth is working
-              </div>
-              <h1 className="onb-title">You&rsquo;re signed in</h1>
-              <p className="onb-sub">
-                Signed in as <strong>{email}</strong>. A matching{" "}
-                <code>accounts</code> row was provisioned by the <code>handle_new_user</code>{" "}
-                trigger.
-              </p>
-              <div className="onb-actions" style={{ justifyContent: "center", marginTop: 24 }}>
-                <button
-                  className="btn btn-secondary"
-                  onClick={signOut}
-                  disabled={busy}
-                  style={{ justifyContent: "center", gap: 8 }}
-                >
-                  Sign out
                 </button>
               </div>
             </>

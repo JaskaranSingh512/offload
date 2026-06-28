@@ -87,6 +87,7 @@ export const I = {
   Beaker: (p: IconProps) => <Icon {...p}><path d="M9 3h6v5l4 10a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3L9 8V3z" /><path d="M9 3h6" /></Icon>,
   Pin: (p: IconProps) => <Icon {...p}><path d="M12 2 7 9v6l5 7 5-7V9l-5-7z" /><circle cx="12" cy="11" r="2" /></Icon>,
   Hash: (p: IconProps) => <Icon {...p}><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" /></Icon>,
+  LogOut: (p: IconProps) => <Icon {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></Icon>,
   // Brand glyphs (simple)
   Reddit: (p: IconProps) => (
     <Icon viewBox="0 0 24 24" {...p}>
