@@ -66,7 +66,7 @@ const InFlight = ({ router, mode, setMode }: ViewProps) => {
       <PageHead
         eyebrow="Campaign analytics"
         title='Day 6 — <span class="em">in flight.</span>'
-        sub="The Honest Cold Brew — Spring Launch · tracking live against forecast"
+        sub="The Honest Cold Brew — Summer Launch · tracking live against forecast"
         actions={
           <>
             <ModeToggle mode={mode} setMode={setMode} />
@@ -156,7 +156,7 @@ const Recap = ({ router, mode, setMode }: ViewProps) => {
       <PageHead
         eyebrow="Campaign recap"
         title='2 weeks <span class="em">in review.</span>'
-        sub="The Honest Cold Brew — Spring Launch · June 22 to July 5, 2026"
+        sub="The Honest Cold Brew — Summer Launch · June 22 to July 5, 2026"
         actions={
           <>
             <ModeToggle mode={mode} setMode={setMode} />
