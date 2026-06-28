@@ -4,11 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase  = createClient(process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY);
 
-const TEMPLATE_ID  = "DAHNyb2h8Qo";
-const ELEMENT_IDS  = {
-  heading: "PBTqQKYZMcllf3J7-LB0NVQyKCZNTSSb6",
-  body:    "PBTqQKYZMcllf3J7-LBGrDT7XqkgdPsmN",
-};
+const BRAND_TEMPLATE_ID = "EAHN0fdLw8k";
 
 const CHANNEL_GUIDE = {
   instagram: "Instagram carousel (4-6 slides). Bold headlines, short punchy body. Visual-first. End with a strong CTA.",
@@ -62,81 +58,57 @@ async function getCanvaToken(accountId) {
 
 const canvaH = (token) => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" });
 
-async function copyTemplate(token, title) {
-  const resp = await fetch(`https://api.canva.com/rest/v1/designs/${TEMPLATE_ID}/copies`, {
-    method: "POST", headers: canvaH(token),
-    body: JSON.stringify({ title: title.slice(0, 50) }),
-  });
-  const text = await resp.text();
-  if (!resp.ok) throw new Error(`copyTemplate (${resp.status}): ${text}`);
-  const data = JSON.parse(text);
-  console.log("copyTemplate:", JSON.stringify(data).slice(0, 200));
-  return data.design?.id ?? data.id;
-}
-
-async function startSession(token, designId) {
-  const resp = await fetch(`https://api.canva.com/rest/v1/designs/${designId}/editing-sessions`, {
-    method: "POST", headers: canvaH(token), body: JSON.stringify({}),
-  });
-  const text = await resp.text();
-  if (!resp.ok) throw new Error(`startSession (${resp.status}): ${text}`);
-  const data = JSON.parse(text);
-  console.log("startSession:", JSON.stringify(data).slice(0, 200));
-  return data.editing_session?.id ?? data.session_id ?? data.id;
-}
-
-async function replaceText(token, designId, sessionId, heading, body) {
+// Create a design from the brand template with autofilled heading + body
+async function autofillSlide(token, slide) {
+  // Step 1: kick off autofill job
   const resp = await fetch(
-    `https://api.canva.com/rest/v1/designs/${designId}/editing-sessions/${sessionId}/operations`,
+    `https://api.canva.com/rest/v1/brand-templates/${BRAND_TEMPLATE_ID}/autofills`,
     {
       method: "POST", headers: canvaH(token),
       body: JSON.stringify({
-        operations: [
-          { type: "replace_text", element_id: ELEMENT_IDS.heading, text: heading },
-          { type: "replace_text", element_id: ELEMENT_IDS.body,    text: body },
+        title: slide.heading.slice(0, 50),
+        data: [
+          { name: "heading", type: "text", text: slide.heading },
+          { name: "body",    type: "text", text: slide.body },
         ],
       }),
     }
   );
   const text = await resp.text();
-  if (!resp.ok) throw new Error(`replaceText (${resp.status}): ${text}`);
-}
+  if (!resp.ok) throw new Error(`autofill (${resp.status}): ${text}`);
+  const { job } = JSON.parse(text);
 
-async function commitSession(token, designId, sessionId) {
-  const resp = await fetch(
-    `https://api.canva.com/rest/v1/designs/${designId}/editing-sessions/${sessionId}/commits`,
-    { method: "POST", headers: canvaH(token), body: JSON.stringify({}) }
-  );
-  const text = await resp.text();
-  if (!resp.ok) throw new Error(`commitSession (${resp.status}): ${text}`);
-}
+  // Step 2: poll until the autofill design is ready
+  let designId = null;
+  for (let i = 0; i < 15; i++) {
+    await new Promise((r) => setTimeout(r, 1500));
+    const poll = await fetch(
+      `https://api.canva.com/rest/v1/brand-templates/${BRAND_TEMPLATE_ID}/autofills/${job.id}`,
+      { headers: canvaH(token) }
+    );
+    const { job: j } = await poll.json();
+    if (j.status === "success") { designId = j.result?.design?.id; break; }
+    if (j.status === "failed")  throw new Error("Autofill job failed");
+  }
+  if (!designId) throw new Error("Autofill timed out");
 
-async function exportDesign(token, designId) {
-  const resp = await fetch("https://api.canva.com/rest/v1/exports", {
+  // Step 3: export the filled design as PNG
+  const exportResp = await fetch("https://api.canva.com/rest/v1/exports", {
     method: "POST", headers: canvaH(token),
     body: JSON.stringify({ design_id: designId, format: { type: "png", export_quality: "regular" } }),
   });
-  const text = await resp.text();
-  if (!resp.ok) throw new Error(`exportDesign (${resp.status}): ${text}`);
-  const { job } = JSON.parse(text);
+  const exportText = await exportResp.text();
+  if (!exportResp.ok) throw new Error(`export (${exportResp.status}): ${exportText}`);
+  const { job: exportJob } = JSON.parse(exportText);
 
   for (let i = 0; i < 12; i++) {
     await new Promise((r) => setTimeout(r, 1500));
-    const poll      = await fetch(`https://api.canva.com/rest/v1/exports/${job.id}`, { headers: canvaH(token) });
+    const poll      = await fetch(`https://api.canva.com/rest/v1/exports/${exportJob.id}`, { headers: canvaH(token) });
     const { job: j } = await poll.json();
-    if (j.status === "success") return j.urls?.[0] ?? null;
+    if (j.status === "success") return { designId, exportUrl: j.urls?.[0] ?? null, heading: slide.heading };
     if (j.status === "failed")  throw new Error("Export job failed");
   }
   throw new Error("Export timed out");
-}
-
-async function generateSlide(token, slide) {
-  const designId  = await copyTemplate(token, slide.heading);
-  const sessionId = await startSession(token, designId);
-  await replaceText(token, designId, sessionId, slide.heading, slide.body);
-  await commitSession(token, designId, sessionId);
-  const exportUrl = await exportDesign(token, designId);
-  return { designId, exportUrl, heading: slide.heading };
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -196,13 +168,19 @@ export default async function handler(req, res) {
   const slideData = message.content.find((b) => b.type === "tool_use")?.input;
   if (!slideData) return res.status(500).json({ error: "Claude returned no tool call" });
 
-  // 2. Canva: link to the base template for the founder to customise
-  // Note: Canva REST API does not expose a design-copy endpoint — programmatic
-  // per-slide rendering is handled post-hackathon via the Canva MCP or autofill API.
-  // For now we surface the slide copy + a direct link to the template in Canva.
-  const canvaTemplateUrl = `https://www.canva.com/design/${TEMPLATE_ID}/edit`;
+  // 2. Canva: autofill brand template per slide → export PNG
   const slideExports = [];
   let canvaError = null;
+
+  try {
+    const token = await getCanvaToken(account_id);
+    for (const slide of slideData.slides) {
+      slideExports.push(await autofillSlide(token, slide));
+    }
+  } catch (err) {
+    console.error("Canva error:", err.message);
+    canvaError = err.message;
+  }
 
   // 3. Create campaign row (required FK for posts)
   const { data: campaign } = await supabase.from("campaigns").insert({
@@ -243,7 +221,7 @@ export default async function handler(req, res) {
     slides:             slideData.slides,
     caption:            slideData.caption,
     channel,
-    canva_template_url: canvaTemplateUrl,
-    canva_exports:      slideExports,
+    canva_exports: slideExports,
+    canva_error:   canvaError,
   });
 }
