@@ -9,7 +9,7 @@ import { createServerClient } from "@supabase/ssr";
 // Components read a fresh auth.uid().
 
 // Public paths that must stay reachable while signed out.
-const PUBLIC_PATHS = ["/login", "/auth", "/api", "/waitlist"];
+const PUBLIC_PATHS = ["/login", "/auth", "/api"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -60,9 +60,8 @@ export async function middleware(request: NextRequest) {
 
   if (!user && !isPublic && !isApi) {
     const redirectUrl = request.nextUrl.clone();
-    // Root → landing page; everything else → login
-    redirectUrl.pathname = pathname === "/" ? "/waitlist" : "/login";
-    if (pathname !== "/") redirectUrl.searchParams.set("next", pathname);
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
