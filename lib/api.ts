@@ -22,6 +22,19 @@ const DEMO =
 
 type BrandRow = Database["public"]["Tables"]["brands"]["Row"];
 type PostRow = Database["public"]["Tables"]["posts"]["Row"];
+type SaStatus = Database["public"]["Enums"]["sa_status_t"];
+
+// Channels Offload can auto-publish (mock). Video is founder-posted and never enters this set
+// (CONTRACT §1a publish selector / §1d).
+const PUBLISHABLE = new Set<ChannelId>(["reddit", "x", "instagram"]);
+
+export interface SocialAccountView {
+  provider: ChannelId;
+  status: SaStatus;
+  handle: string | null;
+  read_scope: boolean;
+  write_scope: boolean;
+}
 
 // One browser client for all reads (RLS resolves via the user's session cookie).
 let _sb: ReturnType<typeof createClient> | null = null;
@@ -330,6 +343,117 @@ export const api = {
     if (fs.error) throw fs.error;
     const p = await sb().from("posts").update({ status: "scheduled" }).eq("id", postId).eq("status", "draft");
     if (p.error) throw p.error;
+  },
+
+  // Drawer-friendly: mark filmed by post id (the drawer has the post, not the founder_scripts row).
+  // Same two-write logic as markFilmed but keyed on post_id (C2/C5).
+  async markFilmedByPost(postId: string) {
+    if (USE_MOCK) return;
+    const fs = await sb().from("founder_scripts").update({ filmed: true }).eq("post_id", postId);
+    if (fs.error) throw fs.error;
+    const p = await sb().from("posts").update({ status: "scheduled" }).eq("id", postId).eq("status", "draft");
+    if (p.error) throw p.error;
+  },
+
+  // ===== Phase 6: OAuth/publish mock =====
+  // Connect = mock OAuth: upsert the channel onto the signed-in user's OWN account (not the DEMO
+  // fallback — onboarding is the user provisioning their own brand). write_scope tracks
+  // publishability: the publishable channels (reddit/x/instagram, CONTRACT §1a selector) get write
+  // scope; video (tiktok) is founder-posted, so no write scope.
+  async connectAccount(provider: ChannelId) {
+    if (USE_MOCK) return;
+    const { data: { user } } = await sb().auth.getUser();
+    if (!user) throw new Error("Sign in to connect an account.");
+    const { error } = await sb().from("social_accounts").upsert(
+      {
+        account_id: user.id,
+        provider: provider as never,
+        status: "mock",
+        read_scope: true,
+        write_scope: PUBLISHABLE.has(provider),
+      },
+      { onConflict: "account_id,provider" },
+    );
+    if (error) throw error;
+  },
+
+  async disconnectAccount(provider: ChannelId) {
+    if (USE_MOCK) return;
+    const { data: { user } } = await sb().auth.getUser();
+    if (!user) return;
+    const { error } = await sb()
+      .from("social_accounts")
+      .update({ status: "disconnected", write_scope: false })
+      .eq("account_id", user.id)
+      .eq("provider", provider);
+    if (error) throw error;
+  },
+
+  async getSocialAccounts(): Promise<SocialAccountView[]> {
+    if (USE_MOCK) {
+      return [
+        { provider: "reddit", status: "mock", handle: "u/brewlab", read_scope: true, write_scope: true },
+        { provider: "x", status: "mock", handle: "@brewlab", read_scope: true, write_scope: true },
+        { provider: "instagram", status: "read_only", handle: "@brewlab", read_scope: true, write_scope: false },
+        { provider: "tiktok", status: "disconnected", handle: "@brewlab", read_scope: false, write_scope: false },
+      ];
+    }
+    const acct = await resolveAccount();
+    const { data, error } = await sb()
+      .from("social_accounts")
+      .select("provider, status, handle, read_scope, write_scope")
+      .eq("account_id", acct);
+    if (error) throw error;
+    return (data ?? []).map((r) => ({
+      provider: r.provider as ChannelId,
+      status: (r.status ?? "disconnected") as SaStatus,
+      handle: r.handle,
+      read_scope: r.read_scope ?? false,
+      write_scope: r.write_scope ?? false,
+    }));
+  },
+
+  // Mock publisher: an approved post on a publishable channel (reddit/x/instagram) flips to
+  // 'published' with a synthetic external_post_id. Video (tiktok/founder) never publishes — the
+  // founder posts it (CONTRACT §1a/§1d). Returns whether a publish happened so the UI can toast.
+  async publishPost(postId: string, channel: ChannelId): Promise<{ published: boolean }> {
+    if (USE_MOCK || !PUBLISHABLE.has(channel)) return { published: false };
+    // Full publish selector (CONTRACT §1a): scheduled + approved + publishable channel. The
+    // status='scheduled' guard also makes publish idempotent (a published post won't re-publish).
+    const { data, error } = await sb()
+      .from("posts")
+      .update({
+        status: "published",
+        published_at: new Date().toISOString(),
+        external_post_id: `mock_${channel}_${crypto.randomUUID().slice(0, 8)}`,
+      })
+      .eq("id", postId)
+      .eq("status", "scheduled")
+      .eq("approval_state", "approved")
+      .select("id");
+    if (error) throw error;
+    return { published: !!data && data.length > 0 };
+  },
+
+  // Approve-all companion: publish the account's approved+scheduled posts on publishable channels.
+  // Selects candidates then publishes each via publishPost so every post gets its OWN unique
+  // external_post_id (a single bulk UPDATE would stamp one id across all rows). Scoped to
+  // status='scheduled' so it can never sweep founder-posted video drafts (C7).
+  async publishApproved(channel: ChannelId | "all"): Promise<{ published: number }> {
+    if (USE_MOCK) return { published: 0 };
+    const acct = await resolveAccount();
+    let q = sb()
+      .from("posts")
+      .select("id, channel")
+      .eq("account_id", acct)
+      .eq("status", "scheduled")
+      .eq("approval_state", "approved")
+      .in("channel", [...PUBLISHABLE] as never[]);
+    if (channel !== "all") q = q.eq("channel", channel);
+    const { data, error } = await q;
+    if (error) throw error;
+    const results = await Promise.all((data ?? []).map((r) => api.publishPost(r.id, r.channel as ChannelId)));
+    return { published: results.filter((r) => r.published).length };
   },
 
   // ===== Phase 5 AI calls (stream + edit) =====

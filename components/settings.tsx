@@ -7,9 +7,19 @@ import { I } from "@/components/icons";
 import { PageHead, Toggle } from "@/components/ui";
 import { ONBOARDED_KEY } from "@/components/first-run-gate";
 import { createClient } from "@/lib/supabase/client";
+import { useSocialAccounts, useDisconnectAccount } from "@/lib/queries";
 import { channelMeta, type ChannelId } from "@/lib/data";
 
 type Policy = "approve" | "auto";
+
+// social_accounts.status → human chip label + tone for the Connected accounts card.
+const STATUS_CHIP: Record<string, { label: string; teal: boolean }> = {
+  mock: { label: "Connected (demo)", teal: true },
+  connected: { label: "Connected", teal: true },
+  read_only: { label: "Read-only", teal: false },
+  expired: { label: "Expired", teal: false },
+  disconnected: { label: "Not connected", teal: false },
+};
 
 const NOTIFS = [
   { id: "approval", label: "Approval needed", desc: "A post on an approve-each channel is queued and waiting." },
@@ -31,6 +41,9 @@ export const Settings = () => {
   const [signingOut, setSigningOut] = useState(false);
 
   const channels = Object.keys(channelMeta) as ChannelId[];
+  const { data: socialAccounts } = useSocialAccounts();
+  const disconnect = useDisconnectAccount();
+  const statusFor = (id: ChannelId) => socialAccounts?.find((a) => a.provider === id)?.status ?? "disconnected";
 
   const signOut = async () => {
     setSigningOut(true);
@@ -144,18 +157,38 @@ export const Settings = () => {
         <div className="flex flex-col gap-2">
           {channels.map((id) => {
             const meta = channelMeta[id];
+            const isVideo = id === "tiktok";
+            const status = statusFor(id);
+            const chip = STATUS_CHIP[status] ?? STATUS_CHIP.disconnected;
+            const isConnected = status === "mock" || status === "connected" || status === "read_only";
             return (
               <div key={id} className="settings-channel-row">
                 <div className="cb-icon" style={{ background: meta.color }}>
                   <meta.Icon size={14} />
                 </div>
                 <span className="cb-name" style={{ flex: 1 }}>{meta.name}</span>
-                <span className="chip chip-teal" style={{ marginRight: 8 }}>
-                  <span className="chip-dot" /> Connected
-                </span>
-                <button className="btn btn-ghost btn-sm" onClick={() => toast(`Disconnected ${meta.name}.`)}>
-                  Disconnect
-                </button>
+                {isVideo ? (
+                  <span className="chip" style={{ marginRight: 8 }}>Founder-posted · video</span>
+                ) : (
+                  <>
+                    <span className={`chip ${chip.teal ? "chip-teal" : ""}`} style={{ marginRight: 8 }}>
+                      {chip.teal && <span className="chip-dot" />} {chip.label}
+                    </span>
+                    {isConnected && (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() =>
+                          disconnect.mutate(id, {
+                            onSuccess: () => toast(`Disconnected ${meta.name}.`),
+                            onError: () => toast.error(`Couldn't disconnect ${meta.name} — try again.`),
+                          })
+                        }
+                      >
+                        Disconnect
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             );
           })}

@@ -6,7 +6,7 @@ import { I } from "@/components/icons";
 import { Chip } from "@/components/ui";
 import { useUI } from "@/lib/store";
 import { channelMeta, redditBody, carouselSets, tiktokScripts, type Post, type CarouselSlide } from "@/lib/data";
-import { useCampaign, useApprovePost } from "@/lib/queries";
+import { useCampaign, useApprovePost, useMarkFilmedByPost } from "@/lib/queries";
 
 // Format families drive which actions/edit affordances the drawer shows (PRD §5.4).
 type EditModel = "text" | "carousel" | "image" | "video";
@@ -36,6 +36,7 @@ export const ContentDetail = () => {
 const Drawer = ({ post, onClose }: { post: Post; onClose: () => void }) => {
   const { data: campaign } = useCampaign();
   const approve = useApprovePost();
+  const markFilmed = useMarkFilmedByPost();
   const setChatOpen = useUI((s) => s.setChatOpen);
   const meta = channelMeta[post.channel];
   const date = campaign?.dateLabels?.[post.day] ?? { num: 0, dow: "", month: "" };
@@ -165,9 +166,15 @@ const Drawer = ({ post, onClose }: { post: Post; onClose: () => void }) => {
           {isVideo ? (
             <button
               className="btn btn-primary"
+              disabled={markFilmed.isPending}
               onClick={() => {
-                toast.success("Marked as filmed — calendar slot activated.");
-                onClose();
+                const done = () => {
+                  toast.success("Marked as filmed — calendar slot activated.");
+                  onClose();
+                };
+                if (post.dbId)
+                  markFilmed.mutate(post.dbId, { onSuccess: done, onError: () => toast.error("Couldn't mark filmed — try again.") });
+                else done();
               }}
             >
               <I.Film size={13} /> Mark filmed
@@ -175,12 +182,18 @@ const Drawer = ({ post, onClose }: { post: Post; onClose: () => void }) => {
           ) : (
             <button
               className="btn btn-primary"
+              disabled={approve.isPending}
               onClick={() => {
-                const done = () => {
-                  toast.success("Post approved — it'll publish at its scheduled time.");
+                const done = (res?: { published: boolean }) => {
+                  if (res?.published) toast.success(`Published to ${meta.name} ✓`);
+                  else toast.success("Post approved — it'll publish at its scheduled time.");
                   onClose();
                 };
-                if (post.dbId) approve.mutate(post.dbId, { onSuccess: done, onError: () => toast.error("Couldn't approve — try again.") });
+                if (post.dbId)
+                  approve.mutate(
+                    { id: post.dbId, channel: post.channel },
+                    { onSuccess: done, onError: () => toast.error("Couldn't approve — try again.") },
+                  );
                 else done();
               }}
             >
