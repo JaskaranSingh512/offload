@@ -62,7 +62,7 @@ export const Onboarding = () => {
   const [data, setData] = useState<BrandData>(INITIAL);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const steps = ["welcome", "brand", "audience", "channels", "connect", "loading"];
+  const steps = ["welcome", "brand", "audience", "connect", "loading"];
   const progress = ((step + 1) / steps.length) * 100;
 
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
@@ -151,9 +151,8 @@ export const Onboarding = () => {
           />
         )}
         {step === 2 && <AudienceStep data={data} setData={setData} onNext={next} onBack={prev} />}
-        {step === 3 && <ChannelsStep data={data} setData={setData} analysis={analysis} onNext={next} onBack={prev} />}
-        {step === 4 && <ConnectStep onNext={next} onBack={prev} />}
-        {step === 5 && <LoadingStep onComplete={complete} />}
+        {step === 3 && <ConnectStep onNext={next} onBack={prev} />}
+        {step === 4 && <LoadingStep onComplete={complete} />}
       </div>
     </div>
   );
@@ -612,7 +611,7 @@ const ConnectStep = ({ onNext, onBack }: { onNext: () => void; onBack: () => voi
 
   return (
     <div className="onb-card">
-      <div className="onb-step-label">04 · Connect accounts</div>
+      <div className="onb-step-label">03 · Connect accounts</div>
       <h1 className="onb-title">
         Connect your <span className="em">handles.</span>
       </h1>
